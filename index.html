@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>포트폴리오 리밸런서</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#111;color:#fff;min-height:100vh;padding:16px}
+.wrap{max-width:480px;margin:0 auto}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-top:12px}
+.logo{font-size:20px;font-weight:700}
+.btns{display:flex;gap:8px}
+.btn{padding:8px 14px;border-radius:8px;border:none;cursor:pointer;font-size:12px;font-weight:700}
+.btn-sync{background:#fff;color:#000}.btn-sync:hover{background:#ddd}
+.btn-settings{background:#333;color:#ccc}.btn-settings:hover{background:#444}
+.btn:disabled{opacity:0.5;cursor:not-allowed}
+.total{text-align:center;font-size:32px;font-weight:200;margin-bottom:12px}
+.milestone{margin-bottom:20px}
+.ms-row{display:flex;justify-content:space-between;font-size:11px;color:#888;margin-bottom:6px}
+.bar-bg{background:#333;border-radius:4px;height:6px}
+.bar-fg{background:#fff;border-radius:4px;height:6px;transition:width 0.5s}
+.bar-label{font-size:10px;color:#555;text-align:right;margin-top:4px}
+.cash-label{color:#888;font-size:13px;margin-bottom:4px}
+.cash-input{width:100%;background:#222;color:#fff;border:none;border-radius:8px;padding:10px;font-size:15px;margin-bottom:20px;outline:none}
+.cash-input:focus{outline:1px solid #444}
+.card{background:#1a1a1a;border-radius:10px;padding:14px;margin-bottom:12px}
+.card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.card-name{font-size:14px;font-weight:500}
+.card-ticker{font-size:10px;color:#555;margin-top:2px}
+.card-action{text-align:right}
+.buy-label{font-size:13px;font-weight:700;color:#00ff88}
+.hold-label{font-size:13px;font-weight:700;color:#444}
+.buy-qty{font-size:12px;color:#00ff88;margin-top:2px}
+.buy-krw{font-size:11px;color:#888;margin-top:1px}
+.card-info{font-size:12px;color:#666;margin-bottom:8px}
+.card-inputs{display:flex;gap:8px}
+.card-input{flex:1;background:#222;color:#fff;border:none;border-radius:6px;padding:8px;font-size:12px;outline:none}
+.card-input:focus{outline:1px solid #444}
+.card-input::placeholder{color:#555}
+.modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:100;overflow-y:auto}
+.modal-overlay.open{display:block}
+.modal{background:#1a1a1a;border-radius:20px 20px 0 0;padding:20px;margin-top:60px;min-height:calc(100vh - 60px)}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.modal-title{font-size:16px;font-weight:700}
+.modal-btn{padding:6px 10px;border-radius:20px;border:none;cursor:pointer;font-size:11px;background:#333;color:#aaa}
+.modal-btn:hover{background:#444}
+.ratio-status{font-size:12px;margin-bottom:16px}
+.asset-edit{background:#222;border-radius:10px;padding:12px;margin-bottom:10px}
+.asset-edit-header{display:flex;justify-content:space-between;margin-bottom:8px}
+.asset-num{font-size:11px;color:#888}
+.del-btn{font-size:11px;color:#ff4444;background:none;border:none;cursor:pointer}
+.edit-input{width:100%;background:#333;color:#fff;border:none;border-radius:6px;padding:8px;font-size:13px;margin-bottom:8px;outline:none}
+.edit-input:focus{outline:1px solid #555}
+.edit-row{display:flex;gap:8px}
+.edit-col{flex:1}
+.edit-label{font-size:11px;color:#666;margin-bottom:4px}
+.type-btn{width:100%;background:#333;border:none;border-radius:6px;padding:8px;font-size:13px;cursor:pointer;height:36px}
+.hint-box{background:#222;border-radius:10px;padding:12px;margin-bottom:12px}
+.hint-text{font-size:11px;color:#666;line-height:18px;margin-bottom:10px}
+.add-btn{width:100%;background:#333;border-radius:10px;padding:12px;border:none;color:#aaa;font-size:13px;cursor:pointer;margin-bottom:16px}
+.add-btn:hover{background:#444}
+.modal-footer{display:flex;gap:10px;margin-top:8px}
+.footer-btn{flex:1;padding:14px;border-radius:10px;border:none;cursor:pointer;font-size:14px;font-weight:700}
+.footer-cancel{background:#333;color:#aaa}.footer-cancel:hover{background:#444}
+.footer-save{background:#fff;color:#000}.footer-save:hover{background:#ddd}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;z-index:200;opacity:0;transition:opacity 0.3s;pointer-events:none}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="logo">포트폴리오 리밸런서 💀</div>
+    <div class="btns">
+      <button class="btn btn-settings" onclick="openSettings()">⚙️ 설정</button>
+      <button class="btn btn-sync" id="syncBtn" onclick="syncPrices()">SYNC</button>
+    </div>
+  </div>
+  <div class="total" id="totalDisplay">₩0</div>
+  <div class="milestone">
+    <div class="ms-row">
+      <span id="milestoneName">Next: 5백만</span>
+      <span id="milestonePercent">0.0%</span>
+    </div>
+    <div class="bar-bg"><div class="bar-fg" id="progressBar" style="width:0%"></div></div>
+    <div class="bar-label" id="milestoneTarget">목표 ₩5,000,000</div>
+  </div>
+  <div class="cash-label">투자 가능 현금 (₩)</div>
+  <input class="cash-input" type="number" id="cashInput" value="0" oninput="update()">
+  <div id="assetCards"></div>
+</div>
+
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">포트폴리오 설정</div>
+      <button class="modal-btn" onclick="window.open('https://www.ktb.co.kr/trading/popup/itemPop.jspx','_blank')">🔍 종목 검색</button>
+    </div>
+    <div class="ratio-status" id="ratioStatus"></div>
+    <div id="editList"></div>
+    <div class="hint-box">
+      <div class="hint-text">
+        • 한국 ETF/주식: 종목코드.KS (예: 069500.KS)<br>
+        • 미국 주식: 티커 그대로 (예: AAPL, TSLA)<br>
+        • 코인 업비트: KRW-BTC 형식<br>
+        • 코인 코인게코: binancecoin, ethereum 등
+      </div>
+    </div>
+    <button class="add-btn" onclick="addAsset()">+ 자산 추가</button>
+    <div class="modal-footer">
+      <button class="footer-btn footer-cancel" onclick="closeSettings()">취소</button>
+      <button class="footer-btn footer-save" onclick="saveSettings()">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const MILESTONES=[{name:'5백만',value:5000000},{name:'1천만',value:10000000},{name:'1억',value:100000000},{name:'5억 🏁',value:500000000}];
+let assets=[
+  {id:'ndq',name:'KODEX 나스닥100',ratio:50,type:'stock',ticker:'069500.KS'},
+  {id:'tgr',name:'TIGER 나스닥프리미엄',ratio:20,type:'stock',ticker:'278530.KS'},
+  {id:'btc',name:'비트코인 BTC',ratio:24,type:'coin',ticker:'KRW-BTC'},
+  {id:'bnb',name:'바이낸스 BNB',ratio:6,type:'coin',ticker:'binancecoin'}
+];
+let quantities={},prices={},editAssets=[];
+
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+
+function load(){
+  const d=localStorage.getItem('pr_data');
+  if(d){const s=JSON.parse(d);if(s.cash)document.getElementById('cashInput').value=s.cash;if(s.quantities)quantities=s.quantities;if(s.prices)prices=s.prices;if(s.assets)assets=s.assets;}
+  update();
+}
+
+function save(){localStorage.setItem('pr_data',JSON.stringify({cash:document.getElementById('cashInput').value,quantities,prices,assets}));}
+
+function update(){
+  const cash=parseFloat(document.getElementById('cashInput').value)||0;
+  const totalAsset=assets.reduce((s,a)=>s+(parseFloat(quantities[a.id])||0)*(parseFloat(prices[a.id])||0),0);
+  const total=totalAsset+cash;
+  document.getElementById('totalDisplay').textContent='₩'+Math.round(total).toLocaleString();
+  const ms=MILESTONES.find(m=>m.value>total)||MILESTONES[MILESTONES.length-1];
+  const pct=Math.min((total/ms.value)*100,100);
+  document.getElementById('milestoneName').textContent='Next: '+ms.name;
+  document.getElementById('milestonePercent').textContent=pct.toFixed(1)+'%';
+  document.getElementById('progressBar').style.width=pct+'%';
+  document.getElementById('milestoneTarget').textContent='목표 ₩'+ms.value.toLocaleString();
+  renderCards(total);save();
+}
+
+function renderCards(total){
+  document.getElementById('assetCards').innerHTML=assets.map(a=>{
+    const price=parseFloat(prices[a.id])||0,qty=parseFloat(quantities[a.id])||0;
+    const cur=qty*price,target=total*(a.ratio/100),diff=target-cur;
+    let buyQty=0;
+    if(diff>0&&price>0){if(a.type==='coin')buyQty=parseFloat((diff/price).toFixed(6));else if(a.ticker.includes('.KS'))buyQty=Math.floor(diff/price);else buyQty=parseFloat((diff/price).toFixed(4));}
+    const buyKrw=buyQty>0?Math.round(buyQty*price):0;
+    const isBuy=a.type==='coin'?buyQty>0.0001:buyQty>0;
+    const unit=a.type==='coin'?' 개':' 주';
+    const qtyStr=a.type==='coin'?buyQty.toFixed(6):a.ticker.includes('.KS')?buyQty:buyQty.toFixed(4);
+    return `<div class="card">
+      <div class="card-header">
+        <div><div class="card-name">${a.name}</div><div class="card-ticker">${a.ticker}</div></div>
+        <div class="card-action">${isBuy?`<div class="buy-label">BUY</div><div class="buy-qty">+${qtyStr}${unit}</div><div class="buy-krw">≈ ₩${buyKrw.toLocaleString()}</div>`:`<div class="hold-label">HOLD</div>`}</div>
+      </div>
+      <div class="card-info">${a.ratio}% | 현재 ₩${Math.round(cur).toLocaleString()} → 목표 ₩${Math.round(target).toLocaleString()}</div>
+      <div class="card-inputs">
+        <input class="card-input" type="number" placeholder="수량" value="${quantities[a.id]||''}" oninput="setQty('${a.id}',this.value)">
+        <input class="card-input" type="number" placeholder="단가" value="${prices[a.id]||''}" oninput="setPrice('${a.id}',this.value)">
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setQty(id,v){quantities[id]=v;update();}
+function setPrice(id,v){prices[id]=v;update();}
+
+async function syncPrices(){
+  const btn=document.getElementById('syncBtn');
+  btn.textContent='...';btn.disabled=true;
+  const newPrices={...prices};
+  const failed=[];
+  await Promise.all(assets.map(async a=>{
+    try{
+      const r=await fetch(`/api/price?ticker=${a.ticker}&type=${a.type}`);
+      const d=await r.json();
+      if(d.price)newPrices[a.id]=String(d.price);
+      else failed.push(a.name);
+    }catch{failed.push(a.name);}
+  }));
+  prices=newPrices;
+  btn.textContent='SYNC';btn.disabled=false;
+  if(failed.length>0)alert('가격 조회 실패:\n'+failed.map(n=>'• '+n).join('\n'));
+  else showToast('가격 동기화 완료 ✓');
+  update();
+}
+
+function openSettings(){editAssets=JSON.parse(JSON.stringify(assets));renderEditList();document.getElementById('settingsModal').classList.add('open');}
+function closeSettings(){document.getElementById('settingsModal').classList.remove('open');}
+
+function renderEditList(){
+  const totalRatio=editAssets.reduce((s,a)=>s+(parseFloat(a.ratio)||0),0);
+  const rs=document.getElementById('ratioStatus');
+  rs.textContent='비율 합계: '+totalRatio+'% '+(totalRatio===100?'✓':'(100%가 되어야 해요)');
+  rs.style.color=totalRatio===100?'#00ff88':'#ff4444';
+  document.getElementById('editList').innerHTML=editAssets.map((a,i)=>`
+    <div class="asset-edit">
+      <div class="asset-edit-header"><span class="asset-num">자산 ${i+1}</span><button class="del-btn" onclick="delAsset(${i})">삭제</button></div>
+      <input class="edit-input" placeholder="자산명" value="${a.name}" oninput="editAssets[${i}].name=this.value;renderEditList()">
+      <input class="edit-input" placeholder="티커 (예: 069500.KS)" value="${a.ticker}" oninput="editAssets[${i}].ticker=this.value;renderEditList()" style="font-size:12px;color:#aaa">
+      <div class="edit-row">
+        <div class="edit-col"><div class="edit-label">목표 비율 (%)</div><input class="edit-input" type="number" value="${a.ratio}" oninput="editAssets[${i}].ratio=parseFloat(this.value)||0;renderEditList()" style="margin-bottom:0"></div>
+        <div class="edit-col"><div class="edit-label">타입</div><button class="type-btn" style="color:${a.type==='coin'?'#f7931a':'#00ff88'}" onclick="editAssets[${i}].type=editAssets[${i}].type==='coin'?'stock':'coin';renderEditList()">${a.type==='coin'?'코인':'주식'}</button></div>
+      </div>
+    </div>`).join('');
+}
+
+function delAsset(i){editAssets.splice(i,1);renderEditList();}
+function addAsset(){editAssets.push({id:'asset_'+Date.now(),name:'',ratio:0,type:'stock',ticker:''});renderEditList();}
+function saveSettings(){
+  if(editAssets.find(a=>!a.name.trim())){alert('자산명을 입력해주세요.');return;}
+  if(editAssets.find(a=>!a.ticker.trim())){alert('티커를 입력해주세요.');return;}
+  const total=editAssets.reduce((s,a)=>s+(parseFloat(a.ratio)||0),0);
+  if(Math.round(total)!==100){alert('비율 합계가 '+total+'%예요.\n100%가 되어야 해요.');return;}
+  assets=JSON.parse(JSON.stringify(editAssets));
+  closeSettings();update();showToast('설정 저장 완료 ✓');
+}
+load();
+</script>
+</body>
+</html>
