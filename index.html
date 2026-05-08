@@ -206,16 +206,63 @@ function renderEditList(){
   const rs=document.getElementById('ratioStatus');
   rs.textContent='비율 합계: '+totalRatio+'% '+(totalRatio===100?'✓':'(100%가 되어야 해요)');
   rs.style.color=totalRatio===100?'#00ff88':'#ff4444';
-  document.getElementById('editList').innerHTML=editAssets.map((a,i)=>`
-    <div class="asset-edit">
-      <div class="asset-edit-header"><span class="asset-num">자산 ${i+1}</span><button class="del-btn" onclick="delAsset(${i})">삭제</button></div>
-      <input class="edit-input" placeholder="자산명" value="${a.name}" oninput="editAssets[${i}].name=this.value;renderEditList()">
-      <input class="edit-input" placeholder="티커 (예: 069500.KS)" value="${a.ticker}" oninput="editAssets[${i}].ticker=this.value;renderEditList()" style="font-size:12px;color:#aaa">
-      <div class="edit-row">
-        <div class="edit-col"><div class="edit-label">목표 비율 (%)</div><input class="edit-input" type="number" value="${a.ratio}" oninput="editAssets[${i}].ratio=parseFloat(this.value)||0;renderEditList()" style="margin-bottom:0"></div>
-        <div class="edit-col"><div class="edit-label">타입</div><button class="type-btn" style="color:${a.type==='coin'?'#f7931a':'#00ff88'}" onclick="editAssets[${i}].type=editAssets[${i}].type==='coin'?'stock':'coin';renderEditList()">${a.type==='coin'?'코인':'주식'}</button></div>
-      </div>
-    </div>`).join('');
+
+  const container=document.getElementById('editList');
+  
+  editAssets.forEach((a,i)=>{
+    let el=document.getElementById('asset-block-'+i);
+    if(!el){
+      el=document.createElement('div');
+      el.className='asset-edit';
+      el.id='asset-block-'+i;
+      el.innerHTML=`
+        <div class="asset-edit-header"><span class="asset-num">자산 ${i+1}</span><button class="del-btn" onclick="delAsset(${i})">삭제</button></div>
+        <input class="edit-input" placeholder="자산명" id="name-${i}">
+        <input class="edit-input" placeholder="티커 (예: 069500.KS)" id="ticker-${i}" style="font-size:12px;color:#aaa">
+        <div class="edit-row">
+          <div class="edit-col"><div class="edit-label">목표 비율 (%)</div><input class="edit-input" type="number" id="ratio-${i}" style="margin-bottom:0"></div>
+          <div class="edit-col"><div class="edit-label">타입</div><button class="type-btn" id="type-${i}" onclick="toggleType(${i})">${a.type==='coin'?'코인':'주식'}</button></div>
+        </div>`;
+      container.appendChild(el);
+
+      document.getElementById('name-'+i).addEventListener('input',function(){
+        editAssets[i].name=this.value;updateRatioStatus();
+      });
+      document.getElementById('ticker-'+i).addEventListener('input',function(){
+        editAssets[i].ticker=this.value;updateRatioStatus();
+      });
+      document.getElementById('ratio-'+i).addEventListener('input',function(){
+        editAssets[i].ratio=parseFloat(this.value)||0;updateRatioStatus();
+      });
+    }
+
+    document.getElementById('name-'+i).value=a.name;
+    document.getElementById('ticker-'+i).value=a.ticker;
+    document.getElementById('ratio-'+i).value=a.ratio;
+    const typeBtn=document.getElementById('type-'+i);
+    typeBtn.textContent=a.type==='coin'?'코인':'주식';
+    typeBtn.style.color=a.type==='coin'?'#f7931a':'#00ff88';
+    document.querySelector('#asset-block-'+i+' .asset-num').textContent='자산 '+(i+1);
+    document.querySelector('#asset-block-'+i+' .del-btn').onclick=()=>delAsset(i);
+  });
+
+  while(container.children.length>editAssets.length){
+    container.removeChild(container.lastChild);
+  }
+}
+
+function toggleType(i){
+  editAssets[i].type=editAssets[i].type==='coin'?'stock':'coin';
+  const btn=document.getElementById('type-'+i);
+  btn.textContent=editAssets[i].type==='coin'?'코인':'주식';
+  btn.style.color=editAssets[i].type==='coin'?'#f7931a':'#00ff88';
+}
+
+function updateRatioStatus(){
+  const totalRatio=editAssets.reduce((s,a)=>s+(parseFloat(a.ratio)||0),0);
+  const rs=document.getElementById('ratioStatus');
+  rs.textContent='비율 합계: '+totalRatio+'% '+(totalRatio===100?'✓':'(100%가 되어야 해요)');
+  rs.style.color=totalRatio===100?'#00ff88':'#ff4444';
 }
 
 function delAsset(i){editAssets.splice(i,1);renderEditList();}
