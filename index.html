@@ -152,7 +152,9 @@ function update(){
 }
 
 function renderCards(total){
-  document.getElementById('assetCards').innerHTML=assets.map(a=>{
+  const container=document.getElementById('assetCards');
+  
+  assets.forEach((a,i)=>{
     const price=parseFloat(prices[a.id])||0,qty=parseFloat(quantities[a.id])||0;
     const cur=qty*price,target=total*(a.ratio/100),diff=target-cur;
     let buyQty=0;
@@ -161,22 +163,65 @@ function renderCards(total){
     const isBuy=a.type==='coin'?buyQty>0.0001:buyQty>0;
     const unit=a.type==='coin'?' 개':' 주';
     const qtyStr=a.type==='coin'?buyQty.toFixed(6):a.ticker.includes('.KS')?buyQty:buyQty.toFixed(4);
-    return `<div class="card">
-      <div class="card-header">
-        <div><div class="card-name">${a.name}</div><div class="card-ticker">${a.ticker}</div></div>
-        <div class="card-action">${isBuy?`<div class="buy-label">BUY</div><div class="buy-qty">+${qtyStr}${unit}</div><div class="buy-krw">≈ ₩${buyKrw.toLocaleString()}</div>`:`<div class="hold-label">HOLD</div>`}</div>
-      </div>
-      <div class="card-info">${a.ratio}% | 현재 ₩${Math.round(cur).toLocaleString()} → 목표 ₩${Math.round(target).toLocaleString()}</div>
-      <div class="card-inputs">
-        <input class="card-input" type="number" placeholder="수량" value="${quantities[a.id]||''}" oninput="setQty('${a.id}',this.value)">
-        <input class="card-input" type="number" placeholder="단가" value="${prices[a.id]||''}" oninput="setPrice('${a.id}',this.value)">
-      </div>
-    </div>`;
-  }).join('');
+
+    let card=document.getElementById('card-'+a.id);
+    if(!card){
+      card=document.createElement('div');
+      card.className='card';
+      card.id='card-'+a.id;
+      card.innerHTML=`
+        <div class="card-header">
+          <div><div class="card-name" id="cname-${a.id}"></div><div class="card-ticker" id="cticker-${a.id}"></div></div>
+          <div class="card-action" id="caction-${a.id}"></div>
+        </div>
+        <div class="card-info" id="cinfo-${a.id}"></div>
+        <div class="card-inputs">
+          <input class="card-input" type="text" inputmode="decimal" placeholder="수량" id="qty-${a.id}">
+          <input class="card-input" type="text" inputmode="decimal" placeholder="단가" id="price-${a.id}">
+        </div>`;
+      container.appendChild(card);
+
+      document.getElementById('qty-'+a.id).addEventListener('input',function(){
+        quantities[a.id]=this.value;calcAndUpdate();
+      });
+      document.getElementById('price-'+a.id).addEventListener('input',function(){
+        prices[a.id]=this.value;calcAndUpdate();
+      });
+    }
+
+    document.getElementById('cname-'+a.id).textContent=a.name;
+    document.getElementById('cticker-'+a.id).textContent=a.ticker;
+    document.getElementById('cinfo-'+a.id).textContent=a.ratio+'% | 현재 ₩'+Math.round(cur).toLocaleString()+' → 목표 ₩'+Math.round(target).toLocaleString();
+    document.getElementById('caction-'+a.id).innerHTML=isBuy?`<div class="buy-label">BUY</div><div class="buy-qty">+${qtyStr}${unit}</div><div class="buy-krw">≈ ₩${buyKrw.toLocaleString()}</div>`:`<div class="hold-label">HOLD</div>`;
+
+    const qtyInput=document.getElementById('qty-'+a.id);
+    const priceInput=document.getElementById('price-'+a.id);
+    if(document.activeElement!==qtyInput)qtyInput.value=quantities[a.id]||'';
+    if(document.activeElement!==priceInput)priceInput.value=prices[a.id]||'';
+  });
+
+  while(container.children.length>assets.length){
+    container.removeChild(container.lastChild);
+  }
 }
 
-function setQty(id,v){quantities[id]=v;update();}
-function setPrice(id,v){prices[id]=v;update();}
+function calcAndUpdate(){
+  const cash=parseFloat(document.getElementById('cashInput').value)||0;
+  const totalAsset=assets.reduce((s,a)=>s+(parseFloat(quantities[a.id])||0)*(parseFloat(prices[a.id])||0),0);
+  const total=totalAsset+cash;
+  document.getElementById('totalDisplay').textContent='₩'+Math.round(total).toLocaleString();
+  const ms=MILESTONES.find(m=>m.value>total)||MILESTONES[MILESTONES.length-1];
+  const pct=Math.min((total/ms.value)*100,100);
+  document.getElementById('milestoneName').textContent='Next: '+ms.name;
+  document.getElementById('milestonePercent').textContent=pct.toFixed(1)+'%';
+  document.getElementById('progressBar').style.width=pct+'%';
+  document.getElementById('milestoneTarget').textContent='목표 ₩'+ms.value.toLocaleString();
+  renderCards(total);
+  save();
+}
+
+function setQty(id,v){quantities[id]=v;calcAndUpdate();}
+function setPrice(id,v){prices[id]=v;calcAndUpdate();}
 
 async function syncPrices(){
   const btn=document.getElementById('syncBtn');
