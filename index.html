@@ -83,6 +83,7 @@ body { background: #111; color: #fff; min-height: 100vh; padding: 16px; display:
 .search-item-type { font-size: 10px; padding: 3px 6px; border-radius: 4px; background: #111; color: #00ff88; font-weight: 700; }
 .search-item-type.coin { color: #f7931a; border: 1px solid #4a3411; background: #2a1f11; }
 .search-loading { padding: 14px; text-align: center; font-size: 12px; color: #888; }
+.local-badge { background: #00ff88; color: #000; font-size: 8px; padding: 1px 4px; border-radius: 3px; margin-left: 6px; vertical-align: middle; }
 
 .ratio-status { font-size: 12px; margin-bottom: 16px; }
 .asset-edit { background: #222; border-radius: 10px; padding: 12px; margin-bottom: 10px; border: 1px solid #2a2a2a; }
@@ -111,7 +112,7 @@ footer a:hover { text-decoration: underline; }
 .info-modal-content { background: #1a1a1a; padding: 20px; border-radius: 12px; max-width: 400px; width: 100%; border: 1px solid #333; }
 .info-modal-close { display: block; width: 100%; text-align: center; background: #333; color: #fff; padding: 10px; border-radius: 8px; margin-top: 16px; font-size: 12px; font-weight: 700; cursor: pointer; }
 
-/* Intro.js 다크모드 커스텀 */
+/* Intro.js 다크모드 */
 .introjs-tooltip { background-color: #1a1a1a !important; color: #fff !important; border: 1px solid #333 !important; border-radius: 12px !important; box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important; }
 .introjs-tooltiptext { font-size: 13px !important; line-height: 1.6 !important; color: #ccc !important; }
 .introjs-bullet { background-color: #444 !important; }
@@ -133,8 +134,8 @@ footer a:hover { text-decoration: underline; }
 
   <div class="guide-banner">
     <ul>
-      <li><strong>자산 비중 유지:</strong> 자산 가격 변동으로 뒤틀린 포트폴리오의 목표 비중을 실시간으로 추적/보정합니다.</li>
-      <li><strong>앱으로 설치하기:</strong> 스마트폰 브라우저 메뉴에서 '홈 화면에 추가'를 누르면 전용 앱처럼 사용 가능합니다.</li>
+      <li><strong>자산 비중 유지:</strong> 자산 가격 변동으로 뒤틀린 포트폴리오의 목표 비중을 추적/보정합니다.</li>
+      <li><strong>빠른 종목 추가:</strong> 설정 창에서 '아마존', '나스닥' 등을 한글로 검색하여 원클릭으로 등록하세요.</li>
     </ul>
   </div>
 
@@ -185,8 +186,8 @@ footer a:hover { text-decoration: underline; }
       <div class="modal-title">포트폴리오 설정</div>
     </div>
 
-    <div class="search-container">
-      <input type="text" class="search-input" id="assetSearch" placeholder="🔍 종목명/티커 검색 (예: 삼성전자, AAPL, 비트코인)" autocomplete="off">
+    <div class="search-container" id="step-search">
+      <input type="text" class="search-input" id="assetSearch" placeholder="🔍 종목/티커 검색 (예: 삼성전자, 슈드, 아마존)" autocomplete="off">
       <div class="search-results" id="searchResults"></div>
     </div>
 
@@ -205,9 +206,29 @@ footer a:hover { text-decoration: underline; }
 const manifestJSON = { "name": "포트폴리오 리밸런서", "short_name": "리밸런서", "start_url": ".", "display": "standalone", "background_color": "#111111", "theme_color": "#111111", "icons": [{ "src": "data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23111%22/><text y=%22.9em%22 x=%225%22 font-size=%2280%22>💀</text></svg>", "sizes": "192x192", "type": "image/svg+xml" }] };
 document.getElementById('manifest-link').href = URL.createObjectURL(new Blob([JSON.stringify(manifestJSON)], {type: 'application/json'}));
 
-const MILESTONES = [
-  {name:'5백만', value:5000000}, {name:'1천만', value:10000000}, 
-  {name:'1억', value:100000000}, {name:'5억 🏁', value:500000000}
+const MILESTONES = [ {name:'5백만', value:5000000}, {name:'1천만', value:10000000}, {name:'1억', value:100000000}, {name:'5억 🏁', value:500000000} ];
+
+// 🌟 한국인 필수 자산 로컬 사전 (한글 애칭 -> 티커 매핑용)
+const localDictionary = [
+  { name: "삼성전자", ticker: "005930.KS", type: "stock", keys: ["삼전", "samsung", "삼성"] },
+  { name: "SK하이닉스", ticker: "000660.KS", type: "stock", keys: ["sk", "하이닉스", "hynix"] },
+  { name: "애플 (Apple)", ticker: "AAPL", type: "stock", keys: ["애플", "사과", "apple"] },
+  { name: "테슬라 (Tesla)", ticker: "TSLA", type: "stock", keys: ["테슬라", "tesla"] },
+  { name: "엔비디아 (NVIDIA)", ticker: "NVDA", type: "stock", keys: ["엔비디아", "엔비", "nvidia"] },
+  { name: "마이크로소프트 (MSFT)", ticker: "MSFT", type: "stock", keys: ["마소", "마이크로소프트", "microsoft"] },
+  { name: "아마존 (Amazon)", ticker: "AMZN", type: "stock", keys: ["아마존", "amazon"] },
+  { name: "알파벳/구글 (GOOGL)", ticker: "GOOGL", type: "stock", keys: ["구글", "알파벳", "google"] },
+  { name: "Invesco QQQ (나스닥 100)", ticker: "QQQ", type: "stock", keys: ["qqq", "나스닥", "미국나스닥"] },
+  { name: "SPDR S&P 500", ticker: "SPY", type: "stock", keys: ["spy", "스파이", "s&p500", "에센피"] },
+  { name: "Schwab US Dividend Equity", ticker: "SCHD", type: "stock", keys: ["schd", "슈드", "미국배당"] },
+  { name: "KODEX 200", ticker: "069500.KS", type: "stock", keys: ["코덱스200", "국내", "kodex"] },
+  { name: "TIGER 미국나스닥100", ticker: "133690.KS", type: "stock", keys: ["미국나스닥100", "tiger나스닥", "타이거나스닥"] },
+  { name: "KODEX 미국나스닥100TR", ticker: "379800.KS", type: "stock", keys: ["미국나스닥100", "kodex나스닥", "코덱스나스닥"] },
+  { name: "TIGER 미국배당다우존스", ticker: "458730.KS", type: "stock", keys: ["schd", "미국배당다우존스", "배당", "다우존스", "슈드"] },
+  { name: "비트코인 (Bitcoin)", ticker: "KRW-BTC", type: "coin", keys: ["btc", "비트코인", "비트"] },
+  { name: "이더리움 (Ethereum)", ticker: "KRW-ETH", type: "coin", keys: ["eth", "이더리움", "이더"] },
+  { name: "솔라나 (Solana)", ticker: "KRW-SOL", type: "coin", keys: ["sol", "솔라나", "솔"] },
+  { name: "리플 (Ripple)", ticker: "KRW-XRP", type: "coin", keys: ["xrp", "리플"] }
 ];
 
 let assets = [
@@ -249,16 +270,15 @@ function startTutorial(forceStart) {
   introJs().setOptions({
     steps: [
       { title: "👋 반갑습니다!", intro: "자산 비중 맞추기 까다로우셨죠? 5초 만에 사용법을 마스터해 보세요." },
-      { element: "#step-dashboard", title: "📊 실시간 대시보드", intro: "현재 보유한 총 자산액과 투자 목표 구간 달성률이 표기됩니다." },
-      { element: "#settingsBtn", title: "⚙️ 내 포트폴리오 자산 설정", intro: "여기서 자산 항목과 <strong>계좌 위치</strong>를 등록하고, 목표 자산 배분 비율을 설정합니다." },
-      { element: "#syncBtn", title: "🔄 실시간 시세 동기화", intro: "이 버튼을 누르면 자체 API를 통해 실시간 시장 가격을 매우 빠르게 불러옵니다." },
-      { element: "#step-cash", title: "💵 신규 투자금 입력", intro: "새로 추가할 예수금 잔액을 적어 넣는 곳입니다." },
-      { element: "#step-cards", title: "⚡ 실시간 리밸런싱 지시서", intro: "자산 수량을 적어두면, 목표 비중에 맞춰 <strong>얼마치를 더 사야 하는지(BUY) 혹은 유지해야 하는지(HOLD)</strong> 계산해 줍니다." }
+      { element: "#settingsBtn", title: "⚙️ 내 자산 셋팅하기", intro: "가장 먼저 여기서 내 보유 종목과 목표 비중을 100%에 맞게 등록하세요." },
+      { element: "#step-search", title: "🔍 스마트 한글 검색", intro: "티커를 몰라도 <strong>'아마존', '나스닥', '슈드'</strong> 처럼 한글로 검색해서 원클릭으로 간편하게 추가할 수 있습니다." },
+      { element: "#syncBtn", title: "🔄 실시간 시세 동기화", intro: "셋팅이 끝나면 이 버튼을 눌러 자체 API로 시장 가격을 빠르게 불러옵니다." },
+      { element: "#step-cards", title: "⚡ 실시간 리밸런싱 지시서", intro: "이제 현재 보유 수량만 적으면, 목표 비중에 맞춰 <strong>얼마치를 더 사야 할지(BUY)</strong> 시스템이 알아서 계산해 줍니다." }
     ],
     nextLabel: "다음 ➔", prevLabel: "◀ 이전", doneLabel: "시작하기 🎉", showBullets: true, exitOnOverlayClick: false
   }).oncomplete(function() {
     localStorage.setItem('pr_tutorial_visited', 'true');
-    showToast("가이드 완료! 앱처럼 홈 화면에 추가해서 사용해보세요.");
+    showToast("가이드 완료! 이제 자유롭게 셋팅해보세요.");
   }).onexit(function() { localStorage.setItem('pr_tutorial_visited', 'true'); }).start();
 }
 
@@ -360,7 +380,7 @@ function renderCards(total) {
   while(container.children.length > assets.length) { container.removeChild(container.lastChild); }
 }
 
-// 🌐 가장 빠른 자체 API 연동 로직 (원상 복구됨) + 스켈레톤 애니메이션
+// 🌐 가장 빠른 자체 API 연동 로직
 async function syncPrices() {
   const btn = document.getElementById('syncBtn');
   btn.textContent = '...';
@@ -399,7 +419,7 @@ async function syncPrices() {
   update();
 }
 
-// --- 인라인 검색(Search) 엔진 ---
+// 🌟 하이브리드 한글 자동완성 검색 엔진
 let searchTimeout;
 document.getElementById('assetSearch').addEventListener('input', function(e) {
   clearTimeout(searchTimeout);
@@ -412,33 +432,31 @@ document.getElementById('assetSearch').addEventListener('input', function(e) {
 
   searchTimeout = setTimeout(async () => {
     const results = [];
-    // 야후 파이낸스 프록시 검색 (주식/ETF)
+    const qLower = q.toLowerCase();
+
+    // 1단계: 로컬 한국인 인기 종목 사전에서 0.01초 매칭
+    localDictionary.forEach(item => {
+      if (item.name.toLowerCase().includes(qLower) || item.ticker.toLowerCase().includes(qLower) || item.keys.some(k => k.includes(qLower))) {
+        results.push({ name: item.name, ticker: item.ticker, type: item.type, source: 'local' });
+      }
+    });
+
+    // 2단계: 사전에 없는 글로벌 종목 외부 API 통신
     try {
-      const yUrl = `https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(q)}&quotesCount=4&newsCount=0`;
+      const yUrl = `https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(q)}&quotesCount=3`;
       const yRes = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(yUrl)}`);
       const yData = JSON.parse((await yRes.json()).contents);
       if(yData.quotes) {
         yData.quotes.forEach(quote => {
-          if(quote.quoteType === 'EQUITY' || quote.quoteType === 'ETF') {
-            results.push({ name: quote.shortname || quote.longname || quote.symbol, ticker: quote.symbol, type: 'stock' });
+          if((quote.quoteType === 'EQUITY' || quote.quoteType === 'ETF') && !results.some(r => r.ticker === quote.symbol)) {
+            results.push({ name: quote.shortname || quote.symbol, ticker: quote.symbol, type: 'stock', source: 'api' });
           }
         });
       }
     } catch(e) {}
 
-    // 코인게코 검색 (암호화폐)
-    try {
-      const cRes = await fetch(`https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(q)}`);
-      const cData = await cRes.json();
-      if(cData.coins) {
-        cData.coins.slice(0, 2).forEach(c => {
-          results.push({ name: c.name, ticker: c.id, type: 'coin' });
-        });
-      }
-    } catch(e) {}
-
     if(results.length === 0) {
-      resContainer.innerHTML = '<div class="search-loading">검색 결과가 없습니다.</div>';
+      resContainer.innerHTML = '<div class="search-loading">검색 결과가 없습니다.<br>티커명을 영어로 다시 확인해 주세요.</div>';
       return;
     }
 
@@ -448,31 +466,29 @@ document.getElementById('assetSearch').addEventListener('input', function(e) {
       div.className = 'search-item';
       div.innerHTML = `
         <div>
-          <div class="search-item-name">${r.name}</div>
+          <div class="search-item-name">${r.name} ${r.source === 'local' ? '<span class="local-badge">인기</span>' : ''}</div>
           <div class="search-item-ticker">${r.ticker}</div>
         </div>
-        <div class="search-item-type ${r.type === 'coin' ? 'coin' : ''}">+ ${r.type === 'coin' ? '코인' : '주식'} 추가</div>
+        <div class="search-item-type ${r.type === 'coin' ? 'coin' : ''}">+ 추가</div>
       `;
       div.onclick = () => {
         editAssets.push({ id: 'asset_' + Date.now(), name: r.name, account: '', ratio: 0, type: r.type, ticker: r.ticker });
         renderEditList();
         document.getElementById('assetSearch').value = '';
         resContainer.style.display = 'none';
-        showToast(`[${r.name}] 자산이 추가되었습니다.`);
+        showToast(`[${r.name}] 추가 완료! 비율을 설정하세요.`);
       };
       resContainer.appendChild(div);
     });
-  }, 400); // 디바운스 0.4초
+  }, 300);
 });
 
-// 외부 영역 클릭 시 검색창 닫기
 document.addEventListener('click', (e) => {
   if(!document.getElementById('assetSearch').contains(e.target) && !document.getElementById('searchResults').contains(e.target)) {
     document.getElementById('searchResults').style.display = 'none';
   }
 });
 
-// --- 설정창 (모달) 로직 ---
 function openSettings() {
   editAssets = JSON.parse(JSON.stringify(assets));
   renderEditList();
@@ -557,7 +573,6 @@ function saveSettings() {
   showToast('설정 저장 완료 ✓');
 }
 
-// 애드몹 심사용 모달
 const infoTexts = {
   privacy: { title: "🔒 개인정보처리방침", body: "본 프로그램은 외부 중앙 서버에 사용자의 지출/자산 데이터를 전송하지 않으며, 전적으로 브라우저 로컬 저장소(LocalStorage)에 보관합니다." },
   terms: { title: "⚖️ 서비스 이용약관", body: "본 웹앱은 연산 편의 도구로, 캐시 삭제로 인한 로컬 데이터 증발 및 투자 결과에 대한 책임은 사용자 본인에게 있습니다." },
