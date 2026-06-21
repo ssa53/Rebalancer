@@ -3,12 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>자산 배분 포트폴리오 리밸런서 (Tutorial 내장 에디션)</title>
+<title>자산 배분 포트폴리오 리밸런서</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intro.js@7.2.0/introjs.min.css">
-<script src="https://cdn.jsdelivr.net/npm/intro.js@7.2.0/introjs.min.css"></script>
 <script src="https://cdn.jsdelivr.net/npm/intro.js@7.2.0/intro.min.js"></script>
 
 <style>
@@ -178,10 +177,8 @@ function load(){
   if(d){const s=JSON.parse(d);if(s.cash)document.getElementById('cashInput').value=s.cash;if(s.quantities)quantities=s.quantities;if(s.prices)prices=s.prices;if(s.assets)assets=s.assets;}
   update();
   
-  // 브라우저 렌더링이 완전히 완료된 후 가이드 구동 안정화 처리
-  window.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => startTutorial(false), 500);
-  });
+  // 브라우저 렌더링 후 가이드 작동 트랜잭션 정상화
+  setTimeout(() => startTutorial(false), 400);
 }
 
 function startTutorial(forceStart) {
@@ -189,7 +186,7 @@ function startTutorial(forceStart) {
   if (isVisited && !forceStart) return;
 
   if (typeof introJs !== 'function') {
-    console.error('Intro.js 라이브러리가 아직 로드되지 않았습니다.');
+    console.error('Intro.js 구성이 준비되지 않았습니다.');
     return;
   }
 
