@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>포트폴리오 리밸런서</title>
+<title>자산 배분 포트폴리오 리밸런서</title>
 
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -70,7 +70,6 @@ body { background: #111; color: #fff; min-height: 100vh; padding: 16px; display:
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .modal-title { font-size: 16px; font-weight: 700; }
 
-/* 🌟 실시간 검색바 스타일 */
 .search-container { position: relative; margin-bottom: 16px; }
 .search-input { width: 100%; background: #222; color: #fff; border: 1px solid #333; border-radius: 8px; padding: 12px 14px; font-size: 13px; outline: none; transition: border 0.2s; }
 .search-input:focus { border-color: #00ff88; }
@@ -82,8 +81,8 @@ body { background: #111; color: #fff; min-height: 100vh; padding: 16px; display:
 .search-item-ticker { font-size: 11px; color: #888; margin-top: 2px; }
 .search-item-type { font-size: 10px; padding: 3px 6px; border-radius: 4px; background: #111; color: #00ff88; font-weight: 700; }
 .search-item-type.coin { color: #f7931a; border: 1px solid #4a3411; background: #2a1f11; }
-.search-loading { padding: 14px; text-align: center; font-size: 12px; color: #888; }
-.local-badge { background: #00ff88; color: #000; font-size: 8px; padding: 1px 4px; border-radius: 3px; margin-left: 6px; vertical-align: middle; }
+.search-loading { padding: 10px 12px; text-align: center; font-size: 12px; color: #888; border-top: 1px dashed #444; background: #222; }
+.local-badge { background: #00ff88; color: #000; font-size: 8px; padding: 1px 4px; border-radius: 3px; margin-left: 6px; vertical-align: middle; font-weight: 700; }
 
 .ratio-status { font-size: 12px; margin-bottom: 16px; }
 .asset-edit { background: #222; border-radius: 10px; padding: 12px; margin-bottom: 10px; border: 1px solid #2a2a2a; }
@@ -111,15 +110,6 @@ footer a:hover { text-decoration: underline; }
 .info-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 99999; padding: 16px; }
 .info-modal-content { background: #1a1a1a; padding: 20px; border-radius: 12px; max-width: 400px; width: 100%; border: 1px solid #333; }
 .info-modal-close { display: block; width: 100%; text-align: center; background: #333; color: #fff; padding: 10px; border-radius: 8px; margin-top: 16px; font-size: 12px; font-weight: 700; cursor: pointer; }
-
-/* Intro.js 다크모드 */
-.introjs-tooltip { background-color: #1a1a1a !important; color: #fff !important; border: 1px solid #333 !important; border-radius: 12px !important; box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important; }
-.introjs-tooltiptext { font-size: 13px !important; line-height: 1.6 !important; color: #ccc !important; }
-.introjs-bullet { background-color: #444 !important; }
-.introjs-bullet.active { background-color: #fff !important; }
-.introjs-button { background-color: #333 !important; color: #fff !important; border: none !important; border-radius: 6px !important; font-size: 11px !important; font-weight: 700 !important; padding: 6px 10px !important; }
-.introjs-skipbutton { color: #ff4444 !important; }
-.introjs-arrow { border-color: #1a1a1a !important; }
 </style>
 </head>
 <body>
@@ -208,7 +198,7 @@ document.getElementById('manifest-link').href = URL.createObjectURL(new Blob([JS
 
 const MILESTONES = [ {name:'5백만', value:5000000}, {name:'1천만', value:10000000}, {name:'1억', value:100000000}, {name:'5억 🏁', value:500000000} ];
 
-// 🌟 한국인 필수 자산 로컬 사전 (한글 애칭 -> 티커 매핑용)
+// 한국인 필수 자산 로컬 사전 (한글 키워드 확장 보강)
 const localDictionary = [
   { name: "삼성전자", ticker: "005930.KS", type: "stock", keys: ["삼전", "samsung", "삼성"] },
   { name: "SK하이닉스", ticker: "000660.KS", type: "stock", keys: ["sk", "하이닉스", "hynix"] },
@@ -218,9 +208,9 @@ const localDictionary = [
   { name: "마이크로소프트 (MSFT)", ticker: "MSFT", type: "stock", keys: ["마소", "마이크로소프트", "microsoft"] },
   { name: "아마존 (Amazon)", ticker: "AMZN", type: "stock", keys: ["아마존", "amazon"] },
   { name: "알파벳/구글 (GOOGL)", ticker: "GOOGL", type: "stock", keys: ["구글", "알파벳", "google"] },
-  { name: "Invesco QQQ (나스닥 100)", ticker: "QQQ", type: "stock", keys: ["qqq", "나스닥", "미국나스닥"] },
-  { name: "SPDR S&P 500", ticker: "SPY", type: "stock", keys: ["spy", "스파이", "s&p500", "에센피"] },
-  { name: "Schwab US Dividend Equity", ticker: "SCHD", type: "stock", keys: ["schd", "슈드", "미국배당"] },
+  { name: "Invesco QQQ (나스닥 100)", ticker: "QQQ", type: "stock", keys: ["qqq", "나스닥", "미국나스닥", "미국나스닥100"] },
+  { name: "SPDR S&P 500", ticker: "SPY", type: "stock", keys: ["spy", "스파이", "s&p500", "에센피", "에스앤피"] },
+  { name: "Schwab US Dividend Equity", ticker: "SCHD", type: "stock", keys: ["schd", "슈드", "미국배당", "미국배당다우존스"] },
   { name: "KODEX 200", ticker: "069500.KS", type: "stock", keys: ["코덱스200", "국내", "kodex"] },
   { name: "TIGER 미국나스닥100", ticker: "133690.KS", type: "stock", keys: ["미국나스닥100", "tiger나스닥", "타이거나스닥"] },
   { name: "KODEX 미국나스닥100TR", ticker: "379800.KS", type: "stock", keys: ["미국나스닥100", "kodex나스닥", "코덱스나스닥"] },
@@ -273,7 +263,7 @@ function startTutorial(forceStart) {
       { element: "#settingsBtn", title: "⚙️ 내 자산 셋팅하기", intro: "가장 먼저 여기서 내 보유 종목과 목표 비중을 100%에 맞게 등록하세요." },
       { element: "#step-search", title: "🔍 스마트 한글 검색", intro: "티커를 몰라도 <strong>'아마존', '나스닥', '슈드'</strong> 처럼 한글로 검색해서 원클릭으로 간편하게 추가할 수 있습니다." },
       { element: "#syncBtn", title: "🔄 실시간 시세 동기화", intro: "셋팅이 끝나면 이 버튼을 눌러 자체 API로 시장 가격을 빠르게 불러옵니다." },
-      { element: "#step-cards", title: "⚡ 실시간 리밸런싱 지시서", intro: "이제 현재 보유 수량만 적으면, 목표 비중에 맞춰 <strong>얼마치를 더 사야 할지(BUY)</strong> 시스템이 알아서 계산해 줍니다." }
+      { element: "#step-cards", title: "⚡ 실시간 리밸런싱 지시서", intro: "이제 현재 보유 수량만 적으면, 목표 비중에 맞춰 <strong>얼마치를 더 사야 하는지(BUY)</strong> 시스템이 알아서 계산해 줍니다." }
     ],
     nextLabel: "다음 ➔", prevLabel: "◀ 이전", doneLabel: "시작하기 🎉", showBullets: true, exitOnOverlayClick: false
   }).oncomplete(function() {
@@ -380,7 +370,6 @@ function renderCards(total) {
   while(container.children.length > assets.length) { container.removeChild(container.lastChild); }
 }
 
-// 🌐 가장 빠른 자체 API 연동 로직
 async function syncPrices() {
   const btn = document.getElementById('syncBtn');
   btn.textContent = '...';
@@ -419,7 +408,7 @@ async function syncPrices() {
   update();
 }
 
-// 🌟 하이브리드 한글 자동완성 검색 엔진
+// 🌟 Non-blocking 렌더링 방식의 고속 검색 제어 모듈
 let searchTimeout;
 document.getElementById('assetSearch').addEventListener('input', function(e) {
   clearTimeout(searchTimeout);
@@ -428,60 +417,104 @@ document.getElementById('assetSearch').addEventListener('input', function(e) {
   
   if(!q) { resContainer.style.display = 'none'; return; }
   resContainer.style.display = 'block';
-  resContainer.innerHTML = '<div class="search-loading">데이터 조회 중...</div>';
 
-  searchTimeout = setTimeout(async () => {
-    const results = [];
-    const qLower = q.toLowerCase();
+  const qLower = q.toLowerCase();
+  let localResults = [];
 
-    // 1단계: 로컬 한국인 인기 종목 사전에서 0.01초 매칭
-    localDictionary.forEach(item => {
-      if (item.name.toLowerCase().includes(qLower) || item.ticker.toLowerCase().includes(qLower) || item.keys.some(k => k.includes(qLower))) {
-        results.push({ name: item.name, ticker: item.ticker, type: item.type, source: 'local' });
-      }
-    });
-
-    // 2단계: 사전에 없는 글로벌 종목 외부 API 통신
-    try {
-      const yUrl = `https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(q)}&quotesCount=3`;
-      const yRes = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(yUrl)}`);
-      const yData = JSON.parse((await yRes.json()).contents);
-      if(yData.quotes) {
-        yData.quotes.forEach(quote => {
-          if((quote.quoteType === 'EQUITY' || quote.quoteType === 'ETF') && !results.some(r => r.ticker === quote.symbol)) {
-            results.push({ name: quote.shortname || quote.symbol, ticker: quote.symbol, type: 'stock', source: 'api' });
-          }
-        });
-      }
-    } catch(e) {}
-
-    if(results.length === 0) {
-      resContainer.innerHTML = '<div class="search-loading">검색 결과가 없습니다.<br>티커명을 영어로 다시 확인해 주세요.</div>';
-      return;
+  // [1단계] 로컬 사전 매칭 (딜레이 없이 0.00초 즉시 추출)
+  localDictionary.forEach(item => {
+    if (item.name.toLowerCase().includes(qLower) || item.ticker.toLowerCase().includes(qLower) || item.keys.some(k => k.includes(qLower))) {
+      localResults.push({ name: item.name, ticker: item.ticker, type: item.type, source: 'local' });
     }
+  });
 
-    resContainer.innerHTML = '';
-    results.forEach(r => {
-      const div = document.createElement('div');
-      div.className = 'search-item';
-      div.innerHTML = `
-        <div>
-          <div class="search-item-name">${r.name} ${r.source === 'local' ? '<span class="local-badge">인기</span>' : ''}</div>
-          <div class="search-item-ticker">${r.ticker}</div>
-        </div>
-        <div class="search-item-type ${r.type === 'coin' ? 'coin' : ''}">+ 추가</div>
-      `;
-      div.onclick = () => {
-        editAssets.push({ id: 'asset_' + Date.now(), name: r.name, account: '', ratio: 0, type: r.type, ticker: r.ticker });
-        renderEditList();
-        document.getElementById('assetSearch').value = '';
-        resContainer.style.display = 'none';
-        showToast(`[${r.name}] 추가 완료! 비율을 설정하세요.`);
-      };
-      resContainer.appendChild(div);
-    });
-  }, 300);
+  // 로컬 매칭 데이터가 있으면 먼저 화면에 즉각 드로잉하여 응답 속도 체감을 극대화함
+  renderSearchResults(localResults, true);
+
+  // [2단계] 느린 외부 API는 디바운스를 걸어 화면 차단(Freeze) 없이 백그라운드 병렬 수집
+  searchTimeout = setTimeout(async () => {
+    let apiResults = [];
+
+    const fetchYahoo = async () => {
+      try {
+        const yUrl = `https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(q)}&quotesCount=3`;
+        const yRes = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(yUrl)}`);
+        const yData = JSON.parse((await yRes.json()).contents);
+        if(yData.quotes) {
+          yData.quotes.forEach(quote => {
+            if((quote.quoteType === 'EQUITY' || quote.quoteType === 'ETF') && !localResults.some(r => r.ticker === quote.symbol)) {
+              apiResults.push({ name: quote.shortname || quote.symbol, ticker: quote.symbol, type: 'stock', source: 'api' });
+            }
+          });
+        }
+      } catch(e) {}
+    };
+
+    const fetchCoinGecko = async () => {
+      try {
+        const cRes = await fetch(`https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(q)}`);
+        const cData = await cRes.json();
+        if(cData.coins) {
+          cData.coins.slice(0, 2).forEach(c => {
+            if (!localResults.some(r => r.ticker === c.id)) {
+              apiResults.push({ name: c.name, ticker: c.id, type: 'coin', source: 'api' });
+            }
+          });
+        }
+      } catch(e) {}
+    };
+
+    // 병렬 통신으로 지연 분산
+    await Promise.all([fetchYahoo(), fetchCoinGecko()]);
+
+    // 비동기 통신이 완료되면 기존 로컬 결과 하단에 원활하게 추가 병합
+    if (apiResults.length > 0) {
+      renderSearchResults([...localResults, ...apiResults], false);
+    } else if (localResults.length === 0) {
+      resContainer.innerHTML = '<div class="search-loading">검색 결과가 없습니다.<br>티커명을 영어로 다시 확인해 주세요.</div>';
+    }
+  }, 350);
 });
+
+// 결과 렌더링 헬퍼 캡슐화
+function renderSearchResults(results, isSearchingBackground) {
+  const resContainer = document.getElementById('searchResults');
+  if (results.length === 0) {
+    if (isSearchingBackground) {
+      resContainer.innerHTML = '<div class="search-loading">데이터 조회 중...</div>';
+    }
+    return;
+  }
+
+  resContainer.innerHTML = '';
+  results.forEach(r => {
+    const div = document.createElement('div');
+    div.className = 'search-item';
+    div.innerHTML = `
+      <div>
+        <div class="search-item-name">${r.name} ${r.source === 'local' ? '<span class="local-badge">인기</span>' : ''}</div>
+        <div class="search-item-ticker">${r.ticker}</div>
+      </div>
+      <div class="search-item-type ${r.type === 'coin' ? 'coin' : ''}">+ 추가</div>
+    `;
+    div.onclick = () => {
+      editAssets.push({ id: 'asset_' + Date.now(), name: r.name, account: '', ratio: 0, type: r.type, ticker: r.ticker });
+      renderEditList();
+      document.getElementById('assetSearch').value = '';
+      resContainer.style.display = 'none';
+      showToast(`[${r.name}] 추가 완료! 비율을 설정하세요.`);
+    };
+    resContainer.appendChild(div);
+  });
+
+  // 외부망 조회 중일 때 목록 맨 아래에 마이너한 가이드 텍스트 송출
+  if (isSearchingBackground) {
+    const loader = document.createElement('div');
+    loader.className = 'search-loading';
+    loader.innerHTML = '🌐 글로벌 주식/코인 추가 탐색 중...';
+    resContainer.appendChild(loader);
+  }
+}
 
 document.addEventListener('click', (e) => {
   if(!document.getElementById('assetSearch').contains(e.target) && !document.getElementById('searchResults').contains(e.target)) {
