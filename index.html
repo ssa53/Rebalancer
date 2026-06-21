@@ -60,20 +60,8 @@ body { background: #111; color: #fff; min-height: 100vh; padding: 16px; display:
 .card-input { flex: 1; background: #222; color: #fff; border: none; border-radius: 6px; padding: 8px; font-size: 12px; outline: none; transition: background 0.3s; }
 .card-input:focus { outline: 1px solid #444; }
 
-/* 🌟 스켈레톤 로딩 애니메이션 CSS */
-.skeleton {
-    color: transparent !important;
-    background: linear-gradient(90deg, #222 25%, #383838 50%, #222 75%) !important;
-    background-size: 200% 100% !important;
-    animation: skeleton-loading 1.2s infinite linear !important;
-    border-radius: 4px;
-    border: none !important;
-    pointer-events: none;
-}
-@keyframes skeleton-loading {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-}
+.skeleton { color: transparent !important; background: linear-gradient(90deg, #222 25%, #383838 50%, #222 75%) !important; background-size: 200% 100% !important; animation: skeleton-loading 1.2s infinite linear !important; border-radius: 4px; border: none !important; pointer-events: none; }
+@keyframes skeleton-loading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
 /* 설정 모달 */
 .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 99999; overflow-y: auto; padding: 16px; }
@@ -81,7 +69,21 @@ body { background: #111; color: #fff; min-height: 100vh; padding: 16px; display:
 .modal { background: #1a1a1a; border-radius: 16px; padding: 20px; max-width: 440px; width: 100%; margin-top: 40px; margin-bottom: 40px; border: 1px solid #333; }
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .modal-title { font-size: 16px; font-weight: 700; }
-.modal-btn { padding: 6px 12px; border-radius: 20px; border: none; cursor: pointer; font-size: 11px; background: #333; color: #aaa; }
+
+/* 🌟 실시간 검색바 스타일 */
+.search-container { position: relative; margin-bottom: 16px; }
+.search-input { width: 100%; background: #222; color: #fff; border: 1px solid #333; border-radius: 8px; padding: 12px 14px; font-size: 13px; outline: none; transition: border 0.2s; }
+.search-input:focus { border-color: #00ff88; }
+.search-results { display: none; position: absolute; top: 100%; left: 0; right: 0; background: #2a2a2a; border: 1px solid #444; border-radius: 8px; margin-top: 4px; z-index: 10; max-height: 240px; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+.search-item { padding: 10px 12px; border-bottom: 1px solid #333; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background 0.1s; }
+.search-item:last-child { border-bottom: none; }
+.search-item:hover { background: #383838; }
+.search-item-name { font-size: 13px; font-weight: 500; color: #fff; }
+.search-item-ticker { font-size: 11px; color: #888; margin-top: 2px; }
+.search-item-type { font-size: 10px; padding: 3px 6px; border-radius: 4px; background: #111; color: #00ff88; font-weight: 700; }
+.search-item-type.coin { color: #f7931a; border: 1px solid #4a3411; background: #2a1f11; }
+.search-loading { padding: 14px; text-align: center; font-size: 12px; color: #888; }
+
 .ratio-status { font-size: 12px; margin-bottom: 16px; }
 .asset-edit { background: #222; border-radius: 10px; padding: 12px; margin-bottom: 10px; border: 1px solid #2a2a2a; }
 .asset-edit-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
@@ -93,6 +95,7 @@ body { background: #111; color: #fff; min-height: 100vh; padding: 16px; display:
 .edit-label { font-size: 11px; color: #666; margin-bottom: 4px; }
 .type-btn { width: 100%; background: #333; border: none; border-radius: 6px; padding: 8px; font-size: 13px; cursor: pointer; height: 36px; }
 .add-btn { width: 100%; background: #333; border-radius: 10px; padding: 12px; border: none; color: #aaa; font-size: 13px; cursor: pointer; margin-bottom: 16px; }
+.add-btn:hover { background: #444; }
 .modal-footer { display: flex; gap: 10px; margin-top: 8px; }
 .footer-btn { flex: 1; padding: 14px; border-radius: 10px; border: none; cursor: pointer; font-size: 14px; font-weight: 700; }
 .footer-cancel { background: #333; color: #aaa; } 
@@ -180,18 +183,17 @@ footer a:hover { text-decoration: underline; }
   <div class="modal" onclick="event.stopPropagation()">
     <div class="modal-header">
       <div class="modal-title">포트폴리오 설정</div>
-      <button class="modal-btn" onclick="window.open('https://www.ktb.co.kr/trading/popup/itemPop.jspx','_blank')">🔍 종목 검색</button>
     </div>
+
+    <div class="search-container">
+      <input type="text" class="search-input" id="assetSearch" placeholder="🔍 종목명/티커 검색 (예: 삼성전자, AAPL, 비트코인)" autocomplete="off">
+      <div class="search-results" id="searchResults"></div>
+    </div>
+
     <div class="ratio-status" id="ratioStatus"></div>
     <div id="editList"></div>
-    <div class="hint-box">
-      <div class="hint-text">
-        • 한국 주식/ETF: 069500.KS (종목코드.KS)<br>
-        • 미국 주식: AAPL, QQQ<br>
-        • 코인 (업비트): KRW-BTC 형식을 권장
-      </div>
-    </div>
-    <button class="add-btn" onclick="addAsset()">+ 자산 추가</button>
+
+    <button class="add-btn" onclick="addAsset()">+ 자산 직접 추가</button>
     <div class="modal-footer">
       <button class="footer-btn footer-cancel" onclick="closeSettings()">취소</button>
       <button class="footer-btn footer-save" onclick="saveSettings()">저장</button>
@@ -200,25 +202,14 @@ footer a:hover { text-decoration: underline; }
 </div>
 
 <script>
-// PWA 앱 설치용 가상 Manifest 동적 생성
-const manifestJSON = {
-  "name": "포트폴리오 리밸런서",
-  "short_name": "리밸런서",
-  "start_url": ".",
-  "display": "standalone",
-  "background_color": "#111111",
-  "theme_color": "#111111",
-  "icons": [{ "src": "data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23111%22/><text y=%22.9em%22 x=%225%22 font-size=%2280%22>💀</text></svg>", "sizes": "192x192", "type": "image/svg+xml" }]
-};
-const manifestBlob = new Blob([JSON.stringify(manifestJSON)], {type: 'application/json'});
-document.getElementById('manifest-link').href = URL.createObjectURL(manifestBlob);
+const manifestJSON = { "name": "포트폴리오 리밸런서", "short_name": "리밸런서", "start_url": ".", "display": "standalone", "background_color": "#111111", "theme_color": "#111111", "icons": [{ "src": "data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23111%22/><text y=%22.9em%22 x=%225%22 font-size=%2280%22>💀</text></svg>", "sizes": "192x192", "type": "image/svg+xml" }] };
+document.getElementById('manifest-link').href = URL.createObjectURL(new Blob([JSON.stringify(manifestJSON)], {type: 'application/json'}));
 
 const MILESTONES = [
   {name:'5백만', value:5000000}, {name:'1천만', value:10000000}, 
   {name:'1억', value:100000000}, {name:'5억 🏁', value:500000000}
 ];
 
-// 계좌(account) 속성이 추가된 초기 기본 포트폴리오
 let assets = [
   {id:'ndq', name:'KODEX 나스닥100', account:'ISA', ratio:30, type:'stock', ticker:'069500.KS'},
   {id:'tgr', name:'TIGER 나스닥프리미엄', account:'ISA', ratio:20, type:'stock', ticker:'278530.KS'},
@@ -245,7 +236,7 @@ function load() {
       if(s.prices) prices = s.prices;
       if(s.assets && s.assets.length > 0) assets = s.assets;
     }
-  } catch(e) { console.error("로컬 로드 에러", e); }
+  } catch(e) {}
   update();
   setTimeout(() => startTutorial(false), 500);
 }
@@ -257,52 +248,21 @@ function startTutorial(forceStart) {
 
   introJs().setOptions({
     steps: [
-      {
-        title: "👋 반갑습니다!",
-        intro: "자산 비중 맞추기 까다로우셨죠? 5초 만에 사용법을 마스터해 보세요."
-      },
-      {
-        element: "#step-dashboard",
-        title: "📊 실시간 대시보드",
-        intro: "현재 보유한 총 자산액과 투자 목표 구간 달성률이 표기됩니다."
-      },
-      {
-        element: "#settingsBtn",
-        title: "⚙️ 내 포트폴리오 자산 설정",
-        intro: "여기서 자산 항목과 <strong>계좌 위치</strong>를 등록하고, 목표 자산 배분 비율을 설정합니다."
-      },
-      {
-        element: "#syncBtn",
-        title: "🔄 실시간 시세 동기화",
-        intro: "이 버튼을 누르면 자체 API를 통해 실시간 시장 가격을 매우 빠르게 불러옵니다."
-      },
-      {
-        element: "#step-cash",
-        title: "💵 신규 투자금 입력",
-        intro: "새로 추가할 예수금 잔액을 적어 넣는 곳입니다."
-      },
-      {
-        element: "#step-cards",
-        title: "⚡ 실시간 리밸런싱 지시서",
-        intro: "자산 수량을 적어두면, 목표 비중에 맞춰 <strong>얼마치를 더 사야 하는지(BUY) 혹은 유지해야 하는지(HOLD)</strong> 계산해 줍니다."
-      }
+      { title: "👋 반갑습니다!", intro: "자산 비중 맞추기 까다로우셨죠? 5초 만에 사용법을 마스터해 보세요." },
+      { element: "#step-dashboard", title: "📊 실시간 대시보드", intro: "현재 보유한 총 자산액과 투자 목표 구간 달성률이 표기됩니다." },
+      { element: "#settingsBtn", title: "⚙️ 내 포트폴리오 자산 설정", intro: "여기서 자산 항목과 <strong>계좌 위치</strong>를 등록하고, 목표 자산 배분 비율을 설정합니다." },
+      { element: "#syncBtn", title: "🔄 실시간 시세 동기화", intro: "이 버튼을 누르면 자체 API를 통해 실시간 시장 가격을 매우 빠르게 불러옵니다." },
+      { element: "#step-cash", title: "💵 신규 투자금 입력", intro: "새로 추가할 예수금 잔액을 적어 넣는 곳입니다." },
+      { element: "#step-cards", title: "⚡ 실시간 리밸런싱 지시서", intro: "자산 수량을 적어두면, 목표 비중에 맞춰 <strong>얼마치를 더 사야 하는지(BUY) 혹은 유지해야 하는지(HOLD)</strong> 계산해 줍니다." }
     ],
-    nextLabel: "다음 ➔",
-    prevLabel: "◀ 이전",
-    doneLabel: "시작하기 🎉",
-    showBullets: true,
-    exitOnOverlayClick: false
+    nextLabel: "다음 ➔", prevLabel: "◀ 이전", doneLabel: "시작하기 🎉", showBullets: true, exitOnOverlayClick: false
   }).oncomplete(function() {
     localStorage.setItem('pr_tutorial_visited', 'true');
     showToast("가이드 완료! 앱처럼 홈 화면에 추가해서 사용해보세요.");
-  }).onexit(function() {
-    localStorage.setItem('pr_tutorial_visited', 'true');
-  }).start();
+  }).onexit(function() { localStorage.setItem('pr_tutorial_visited', 'true'); }).start();
 }
 
-function save() { 
-  localStorage.setItem('pr_data', JSON.stringify({cash:document.getElementById('cashInput').value, quantities, prices, assets})); 
-}
+function save() { localStorage.setItem('pr_data', JSON.stringify({cash:document.getElementById('cashInput').value, quantities, prices, assets})); }
 
 function update() {
   const cash = parseFloat(document.getElementById('cashInput').value) || 0;
@@ -376,7 +336,6 @@ function renderCards(total) {
     document.getElementById('cname-'+a.id).textContent = a.name;
     document.getElementById('cticker-'+a.id).textContent = a.ticker;
     
-    // 계좌 태그 뱃지 처리 로직
     const accBadge = document.getElementById('cacc-'+a.id);
     if(a.account && a.account.trim() !== '') {
         accBadge.textContent = a.account;
@@ -389,30 +348,24 @@ function renderCards(total) {
     
     const actionHtml = isBuy ? `<div class="buy-label">BUY</div><div class="buy-qty">+${qtyStr}${unit}</div><div class="buy-krw">≈ ₩${buyKrw.toLocaleString()}</div>` : `<div class="hold-label">HOLD</div>`;
     
-    // 스켈레톤 애니메이션이 활성화되어 있지 않을 때만 내용 업데이트
     const actionDiv = document.getElementById('caction-'+a.id);
-    if(!actionDiv.classList.contains('skeleton')) {
-      actionDiv.innerHTML = actionHtml;
-    }
+    if(!actionDiv.classList.contains('skeleton')) actionDiv.innerHTML = actionHtml;
 
     if(document.activeElement !== document.getElementById('qty-'+a.id)) document.getElementById('qty-'+a.id).value = quantities[a.id] || '';
     
     const priceInput = document.getElementById('price-'+a.id);
-    if(document.activeElement !== priceInput && !priceInput.classList.contains('skeleton')) {
-      priceInput.value = prices[a.id] || '';
-    }
+    if(document.activeElement !== priceInput && !priceInput.classList.contains('skeleton')) priceInput.value = prices[a.id] || '';
   });
 
   while(container.children.length > assets.length) { container.removeChild(container.lastChild); }
 }
 
-// 🌐 스켈레톤 UI가 적용된 고속 자체 API 연동 로직
-async function syncPrices(){
+// 🌐 가장 빠른 자체 API 연동 로직 (원상 복구됨) + 스켈레톤 애니메이션
+async function syncPrices() {
   const btn = document.getElementById('syncBtn');
   btn.textContent = '...';
   btn.disabled = true;
   
-  // 1. 통신 시작 시 스켈레톤 클래스 부착
   assets.forEach(a => {
     document.getElementById('caction-'+a.id).classList.add('skeleton');
     document.getElementById('caction-'+a.id).innerHTML = `<div style="height:36px; width:60px;"></div>`;
@@ -425,17 +378,13 @@ async function syncPrices(){
   
   await Promise.all(assets.map(async a => {
     try {
-      // ⚡ 자체 구축 API 페치 구간
       const r = await fetch(`/api/price?ticker=${a.ticker}&type=${a.type}`);
       const d = await r.json();
       if(d.price) newPrices[a.id] = String(d.price);
       else failed.push(a.name);
-    } catch { 
-      failed.push(a.name); 
-    }
+    } catch { failed.push(a.name); }
   }));
   
-  // 2. 통신 종료 후 스켈레톤 제거 및 반영
   assets.forEach(a => {
     document.getElementById('caction-'+a.id).classList.remove('skeleton');
     document.getElementById('price-'+a.id).classList.remove('skeleton');
@@ -447,10 +396,83 @@ async function syncPrices(){
   
   if(failed.length > 0) alert('가격 조회 실패:\n' + failed.map(n => '• ' + n).join('\n'));
   else showToast('가격 동기화 완료 ✓');
-  
   update();
 }
 
+// --- 인라인 검색(Search) 엔진 ---
+let searchTimeout;
+document.getElementById('assetSearch').addEventListener('input', function(e) {
+  clearTimeout(searchTimeout);
+  const q = e.target.value.trim();
+  const resContainer = document.getElementById('searchResults');
+  
+  if(!q) { resContainer.style.display = 'none'; return; }
+  resContainer.style.display = 'block';
+  resContainer.innerHTML = '<div class="search-loading">데이터 조회 중...</div>';
+
+  searchTimeout = setTimeout(async () => {
+    const results = [];
+    // 야후 파이낸스 프록시 검색 (주식/ETF)
+    try {
+      const yUrl = `https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(q)}&quotesCount=4&newsCount=0`;
+      const yRes = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(yUrl)}`);
+      const yData = JSON.parse((await yRes.json()).contents);
+      if(yData.quotes) {
+        yData.quotes.forEach(quote => {
+          if(quote.quoteType === 'EQUITY' || quote.quoteType === 'ETF') {
+            results.push({ name: quote.shortname || quote.longname || quote.symbol, ticker: quote.symbol, type: 'stock' });
+          }
+        });
+      }
+    } catch(e) {}
+
+    // 코인게코 검색 (암호화폐)
+    try {
+      const cRes = await fetch(`https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(q)}`);
+      const cData = await cRes.json();
+      if(cData.coins) {
+        cData.coins.slice(0, 2).forEach(c => {
+          results.push({ name: c.name, ticker: c.id, type: 'coin' });
+        });
+      }
+    } catch(e) {}
+
+    if(results.length === 0) {
+      resContainer.innerHTML = '<div class="search-loading">검색 결과가 없습니다.</div>';
+      return;
+    }
+
+    resContainer.innerHTML = '';
+    results.forEach(r => {
+      const div = document.createElement('div');
+      div.className = 'search-item';
+      div.innerHTML = `
+        <div>
+          <div class="search-item-name">${r.name}</div>
+          <div class="search-item-ticker">${r.ticker}</div>
+        </div>
+        <div class="search-item-type ${r.type === 'coin' ? 'coin' : ''}">+ ${r.type === 'coin' ? '코인' : '주식'} 추가</div>
+      `;
+      div.onclick = () => {
+        editAssets.push({ id: 'asset_' + Date.now(), name: r.name, account: '', ratio: 0, type: r.type, ticker: r.ticker });
+        renderEditList();
+        document.getElementById('assetSearch').value = '';
+        resContainer.style.display = 'none';
+        showToast(`[${r.name}] 자산이 추가되었습니다.`);
+      };
+      resContainer.appendChild(div);
+    });
+  }, 400); // 디바운스 0.4초
+});
+
+// 외부 영역 클릭 시 검색창 닫기
+document.addEventListener('click', (e) => {
+  if(!document.getElementById('assetSearch').contains(e.target) && !document.getElementById('searchResults').contains(e.target)) {
+    document.getElementById('searchResults').style.display = 'none';
+  }
+});
+
+// --- 설정창 (모달) 로직 ---
 function openSettings() {
   editAssets = JSON.parse(JSON.stringify(assets));
   renderEditList();
@@ -478,7 +500,7 @@ function renderEditList() {
         <div class="asset-edit-header"><span class="asset-num">자산 ${i + 1}</span><button class="del-btn" onclick="delAsset(${i})">삭제</button></div>
         <div class="edit-row">
           <div class="edit-col"><input class="edit-input" placeholder="자산명" id="name-${i}"></div>
-          <div class="edit-col"><input class="edit-input" placeholder="계좌 (예: ISA, 코빗)" id="account-${i}" style="color:#aaa;"></div>
+          <div class="edit-col"><input class="edit-input" placeholder="계좌 (예: ISA, 토스)" id="account-${i}" style="color:#aaa;"></div>
         </div>
         <input class="edit-input" placeholder="티커 (예: 069500.KS)" id="ticker-${i}" style="font-size:12px;color:#aaa">
         <div class="edit-row">
@@ -535,6 +557,7 @@ function saveSettings() {
   showToast('설정 저장 완료 ✓');
 }
 
+// 애드몹 심사용 모달
 const infoTexts = {
   privacy: { title: "🔒 개인정보처리방침", body: "본 프로그램은 외부 중앙 서버에 사용자의 지출/자산 데이터를 전송하지 않으며, 전적으로 브라우저 로컬 저장소(LocalStorage)에 보관합니다." },
   terms: { title: "⚖️ 서비스 이용약관", body: "본 웹앱은 연산 편의 도구로, 캐시 삭제로 인한 로컬 데이터 증발 및 투자 결과에 대한 책임은 사용자 본인에게 있습니다." },
@@ -548,7 +571,6 @@ function openInfoModal(type) {
 }
 function closeInfoModalOuter(e) { if(e.target.id === 'infoModal') document.getElementById('infoModal').style.display = 'none'; }
 
-// 시작
 load();
 </script>
 </body>
