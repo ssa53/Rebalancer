@@ -3,69 +3,90 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>포트폴리오 리밸런서</title>
+<title>자산 배분 포트폴리오 리밸런서 (AdMob 지원 에디션)</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#111;color:#fff;min-height:100vh;padding:16px}
-.wrap{max-width:480px;margin:0 auto}
-.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-top:12px}
-.logo{font-size:20px;font-weight:700}
-.btns{display:flex;gap:8px}
-.btn{padding:8px 14px;border-radius:8px;border:none;cursor:pointer;font-size:12px;font-weight:700}
-.btn-sync{background:#fff;color:#000}.btn-sync:hover{background:#ddd}
-.btn-settings{background:#333;color:#ccc}.btn-settings:hover{background:#444}
-.btn:disabled{opacity:0.5;cursor:not-allowed}
-.total{text-align:center;font-size:32px;font-weight:200;margin-bottom:12px}
-.milestone{margin-bottom:20px}
-.ms-row{display:flex;justify-content:space-between;font-size:11px;color:#888;margin-bottom:6px}
-.bar-bg{background:#333;border-radius:4px;height:6px}
-.bar-fg{background:#fff;border-radius:4px;height:6px;transition:width 0.5s}
-.bar-label{font-size:10px;color:#555;text-align:right;margin-top:4px}
-.cash-label{color:#888;font-size:13px;margin-bottom:4px}
-.cash-input{width:100%;background:#222;color:#fff;border:none;border-radius:8px;padding:10px;font-size:15px;margin-bottom:20px;outline:none}
-.cash-input:focus{outline:1px solid #444}
-.card{background:#1a1a1a;border-radius:10px;padding:14px;margin-bottom:12px}
-.card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
-.card-name{font-size:14px;font-weight:500}
-.card-ticker{font-size:10px;color:#555;margin-top:2px}
-.card-action{text-align:right}
-.buy-label{font-size:13px;font-weight:700;color:#00ff88}
-.hold-label{font-size:13px;font-weight:700;color:#444}
-.buy-qty{font-size:12px;color:#00ff88;margin-top:2px}
-.buy-krw{font-size:11px;color:#888;margin-top:1px}
-.card-info{font-size:12px;color:#666;margin-bottom:8px}
-.card-inputs{display:flex;gap:8px}
-.card-input{flex:1;background:#222;color:#fff;border:none;border-radius:6px;padding:8px;font-size:12px;outline:none}
-.card-input:focus{outline:1px solid #444}
-.card-input::placeholder{color:#555}
-.modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:100;overflow-y:auto}
-.modal-overlay.open{display:block}
-.modal{background:#1a1a1a;border-radius:20px 20px 0 0;padding:20px;margin-top:60px;min-height:calc(100vh - 60px)}
-.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
-.modal-title{font-size:16px;font-weight:700}
-.modal-btn{padding:6px 10px;border-radius:20px;border:none;cursor:pointer;font-size:11px;background:#333;color:#aaa}
-.modal-btn:hover{background:#444}
-.ratio-status{font-size:12px;margin-bottom:16px}
-.asset-edit{background:#222;border-radius:10px;padding:12px;margin-bottom:10px}
-.asset-edit-header{display:flex;justify-content:space-between;margin-bottom:8px}
-.asset-num{font-size:11px;color:#888}
-.del-btn{font-size:11px;color:#ff4444;background:none;border:none;cursor:pointer}
-.edit-input{width:100%;background:#333;color:#fff;border:none;border-radius:6px;padding:8px;font-size:13px;margin-bottom:8px;outline:none}
-.edit-input:focus{outline:1px solid #555}
-.edit-row{display:flex;gap:8px}
-.edit-col{flex:1}
-.edit-label{font-size:11px;color:#666;margin-bottom:4px}
-.type-btn{width:100%;background:#333;border:none;border-radius:6px;padding:8px;font-size:13px;cursor:pointer;height:36px}
-.hint-box{background:#222;border-radius:10px;padding:12px;margin-bottom:12px}
-.hint-text{font-size:11px;color:#666;line-height:18px;margin-bottom:10px}
-.add-btn{width:100%;background:#333;border-radius:10px;padding:12px;border:none;color:#aaa;font-size:13px;cursor:pointer;margin-bottom:16px}
-.add-btn:hover{background:#444}
-.modal-footer{display:flex;gap:10px;margin-top:8px}
-.footer-btn{flex:1;padding:14px;border-radius:10px;border:none;cursor:pointer;font-size:14px;font-weight:700}
-.footer-cancel{background:#333;color:#aaa}.footer-cancel:hover{background:#444}
-.footer-save{background:#fff;color:#000}.footer-save:hover{background:#ddd}
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;z-index:200;opacity:0;transition:opacity 0.3s;pointer-events:none}
-.toast.show{opacity:1}
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+body { background: #111; color: #fff; min-height: 100vh; padding: 16px; display: flex; flex-direction: column; }
+.wrap { max-width: 480px; margin: 0 auto; flex: 1; width: 100%; }
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-top: 12px; }
+.logo { font-size: 20px; font-weight: 700; color: #fff; }
+.btns { display: flex; gap: 8px; }
+.btn { padding: 8px 14px; border-radius: 8px; border: none; cursor: pointer; font-size: 12px; font-weight: 700; }
+.btn-sync { background: #fff; color: #000; } .btn-sync:hover { background: #ddd; }
+.btn-settings { background: #333; color: #ccc; } .btn-settings:hover { background: #444; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* AdMob 대응용 앱 안내 가이드 배너 */
+.guide-banner { background: #1a2e26; border: 1px solid #059669; padding: 14px; border-radius: 10px; margin-bottom: 20px; }
+.guide-banner ul { list-style: none; font-size: 11px; color: #34d399; line-height: 1.6; }
+.guide-banner strong { color: #fff; }
+
+.total { text-align: center; font-size: 32px; font-weight: 200; margin-bottom: 12px; }
+.milestone { margin-bottom: 20px; }
+.ms-row { display: flex; justify-content: space-between; font-size: 11px; color: #888; margin-bottom: 6px; }
+.bar-bg { background: #333; border-radius: 4px; height: 6px; }
+.bar-fg { background: #fff; border-radius: 4px; height: 6px; transition: width 0.5s; }
+.bar-label { font-size: 10px; color: #666; text-align: right; margin-top: 4px; }
+.cash-label { color: #888; font-size: 13px; margin-bottom: 4px; }
+.cash-input { width: 100%; background: #222; color: #fff; border: none; border-radius: 8px; padding: 10px; font-size: 15px; margin-bottom: 20px; outline: none; }
+.cash-input:focus { outline: 1px solid #444; }
+
+.card { background: #1a1a1a; border-radius: 10px; padding: 14px; margin-bottom: 12px; border: 1px solid #222; }
+.card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+.card-name { font-size: 14px; font-weight: 500; }
+.card-ticker { font-size: 10px; color: #666; margin-top: 2px; }
+.card-action { text-align: right; }
+.buy-label { font-size: 13px; font-weight: 700; color: #00ff88; }
+.hold-label { font-size: 13px; font-weight: 700; color: #444; }
+.buy-qty { font-size: 12px; color: #00ff88; margin-top: 2px; }
+.buy-krw { font-size: 11px; color: #888; margin-top: 1px; }
+.card-info { font-size: 12px; color: #888; margin-bottom: 8px; }
+.card-inputs { display: flex; gap: 8px; }
+.card-input { flex: 1; background: #222; color: #fff; border: none; border-radius: 6px; padding: 8px; font-size: 12px; outline: none; }
+.card-input:focus { outline: 1px solid #444; }
+.card-input::placeholder { color: #555; }
+
+/* 설정 모달 */
+.modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 100; overflow-y: auto; padding: 16px; }
+.modal-overlay.open { display: flex; justify-content: center; align-items: flex-start; }
+.modal { background: #1a1a1a; border-radius: 16px; padding: 20px; max-width: 440px; width: 100%; margin-top: 40px; margin-bottom: 40px; border: 1px solid #333; }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.modal-title { font-size: 16px; font-weight: 700; }
+.modal-btn { padding: 6px 12px; border-radius: 20px; border: none; cursor: pointer; font-size: 11px; background: #333; color: #aaa; }
+.modal-btn:hover { background: #444; }
+.ratio-status { font-size: 12px; margin-bottom: 16px; }
+.asset-edit { background: #222; border-radius: 10px; padding: 12px; margin-bottom: 10px; border: 1px solid #2a2a2a; }
+.asset-edit-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
+.asset-num { font-size: 11px; color: #888; }
+.del-btn { font-size: 11px; color: #ff4444; background: none; border: none; cursor: pointer; }
+.edit-input { width: 100%; background: #333; color: #fff; border: none; border-radius: 6px; padding: 8px; font-size: 13px; margin-bottom: 8px; outline: none; }
+.edit-input:focus { outline: 1px solid #555; }
+.edit-row { display: flex; gap: 8px; }
+.edit-col { flex: 1; }
+.edit-label { font-size: 11px; color: #666; margin-bottom: 4px; }
+.type-btn { width: 100%; background: #333; border: none; border-radius: 6px; padding: 8px; font-size: 13px; cursor: pointer; height: 36px; }
+.hint-box { background: #222; border-radius: 10px; padding: 12px; margin-bottom: 12px; border: 1px solid #2a2a2a; }
+.hint-text { font-size: 11px; color: #aaa; line-height: 18px; }
+.add-btn { width: 100%; background: #333; border-radius: 10px; padding: 12px; border: none; color: #aaa; font-size: 13px; cursor: pointer; margin-bottom: 16px; }
+.add-btn:hover { background: #444; }
+.modal-footer { display: flex; gap: 10px; margin-top: 8px; }
+.footer-btn { flex: 1; padding: 14px; border-radius: 10px; border: none; cursor: pointer; font-size: 14px; font-weight: 700; }
+.footer-cancel { background: #333; color: #aaa; } .footer-cancel:hover { background: #444; }
+.footer-save { background: #fff; color: #000; } .footer-save:hover { background: #ddd; }
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 13px; z-index: 200; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+.toast.show { opacity: 1; }
+
+/* AdMob 규정 준수용 하단 내비게이션 영역 */
+footer { text-align: center; padding: 24px 0; margin-top: 40px; border-top: 1px solid #222; font-size: 11px; color: #666; }
+footer a { color: #888; text-decoration: none; margin: 0 6px; }
+footer a:hover { text-decoration: underline; }
+
+/* 정책 안내용 정보 모달 */
+.info-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 300; padding: 16px; }
+.info-modal-content { background: #1a1a1a; padding: 20px; border-radius: 12px; max-width: 400px; width: 100%; border: 1px solid #333; }
+.info-modal-close { display: block; width: 100%; text-align: center; background: #333; color: #fff; padding: 10px; border-radius: 8px; margin-top: 16px; font-size: 12px; font-weight: 700; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -77,6 +98,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <button class="btn btn-sync" id="syncBtn" onclick="syncPrices()">SYNC</button>
     </div>
   </div>
+
+  <!-- AdMob 심사용 기능 정의 가이드 영역 -->
+  <div class="guide-banner">
+    <ul>
+      <li><strong>자산 비중 유지:</strong> 자산 가격 변동으로 뒤틀린 자산 포트폴리오의 목표 비중을 실시간으로 추적하고 보정합니다.</li>
+      <li><strong>안전한 로컬 자산 보관:</strong> 입력하시는 투자 수량 및 자산 데이터는 서버에 저장되지 않고 브라우저 샌드박스 내부 영역(LocalStorage)에 정밀 보관됩니다.</li>
+    </ul>
+  </div>
+
   <div class="total" id="totalDisplay">₩0</div>
   <div class="milestone">
     <div class="ms-row">
@@ -91,8 +121,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div id="assetCards"></div>
 </div>
 
-<div class="modal-overlay" id="settingsModal">
-  <div class="modal">
+<!-- 설정 모달 구조 수정 -->
+<div class="modal-overlay" id="settingsModal" onclick="closeSettingsViaOverlay(event)">
+  <div class="modal" onclick="event.stopPropagation()">
     <div class="modal-header">
       <div class="modal-title">포트폴리오 설정</div>
       <button class="modal-btn" onclick="window.open('https://www.ktb.co.kr/trading/popup/itemPop.jspx','_blank')">🔍 종목 검색</button>
@@ -112,6 +143,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <button class="footer-btn footer-cancel" onclick="closeSettings()">취소</button>
       <button class="footer-btn footer-save" onclick="saveSettings()">저장</button>
     </div>
+  </div>
+</div>
+
+<!-- AdMob 승인 필수 서류 하단 내비게이션 -->
+<footer>
+  <p>© 2026 Portfolio Rebalancer Dev. All rights reserved.</p>
+  <p style="margin-top: 8px;">
+    <a href="#" onclick="openInfoModal('privacy')">개인정보처리방침</a> | 
+    <a href="#" onclick="openInfoModal('terms')">이용약관</a> | 
+    <a href="#" onclick="openInfoModal('support')">고객지원 문의</a>
+  </p>
+</footer>
+
+<!-- 팝업 모달 토글 구조 -->
+<div id="infoModal" class="info-modal" onclick="closeInfoModalOuter(event)">
+  <div class="info-modal-content">
+    <h4 id="infoTitle" style="font-size:14px; margin-bottom:10px; color:#fff;"></h4>
+    <p id="infoBody" style="font-size:11px; color:#aaa; line-height:1.6; white-space:pre-wrap;"></p>
+    <div class="info-modal-close" onclick="document.getElementById('infoModal').style.display='none'">확인 및 닫기</div>
   </div>
 </div>
 
@@ -245,6 +295,7 @@ async function syncPrices(){
 
 function openSettings(){editAssets=JSON.parse(JSON.stringify(assets));renderEditList();document.getElementById('settingsModal').classList.add('open');}
 function closeSettings(){document.getElementById('settingsModal').classList.remove('open');}
+function closeSettingsViaOverlay(e){if(e.target.id==='settingsModal')closeSettings();}
 
 function renderEditList(){
   const totalRatio=editAssets.reduce((s,a)=>s+(parseFloat(a.ratio)||0),0);
@@ -320,6 +371,30 @@ function saveSettings(){
   assets=JSON.parse(JSON.stringify(editAssets));
   closeSettings();update();showToast('설정 저장 완료 ✓');
 }
+
+// AdMob 관련 약관 문서 정의
+const infoTexts = {
+  privacy: {
+    title: "🔒 개인정보처리방침",
+    body: "본 프로그램은 투자 자산 배분 비중을 계산해 주는 오픈소스 기반 웹 유틸리티 서비스입니다.\n\n1. 데이터 미수집 안내: 사용자가 설정하는 포트폴리오 자산명, 보유 수량, 평단가 및 예수금 데이터는 외부 별도 중앙 데이터베이스 서버에 일절 기록되거나 보관되지 않습니다.\n2. 보관 방식: 모든 정보는 사용자의 브라우저 로컬 저장소(LocalStorage) 보안 샌드박스 영역에 저장되며 본인 기기 외부로 유출되지 않습니다.\n3. 비식별 쿠키 활용: 구글 애드몹 광고 송출 플랫폼 최적화를 위해 일부 비식별화된 연동용 타겟팅 쿠키가 사용될 수 있습니다."
+  },
+  terms: {
+    title: "⚖️ 서비스 이용약관",
+    body: "제 1 조 (목적)\n본 약관은 '포트폴리오 리밸런서'에서 지원하는 로컬 기반 자산 비중 보정 연산 서비스 이용에 대한 기본 수칙을 규정합니다.\n\n제 2 조 (자산 관리 책임)\n본 웹앱은 연산 편의 도구일 뿐이며, 투자 결과 및 브라우저 캐시 소실로 인한 로컬 데이터 증발 책임은 사용자 본인에게 있습니다.\n\n제 3 조 (인프라 광고 게재)\n본 유틸리티는 서비스 상시 무료 개방 및 운영 인프라 유지를 목적으로 구글 애드몹 광고 모듈 영역을 지면 내에 송출할 수 있습니다."
+  },
+  support: {
+    title: "✉️ 개발자 정보 및 고객지원 채널",
+    body: "본 포트폴리오 리밸런서 연산 프로그램의 버그 리포트, 제안 사항 및 기능 고도화 문의는 아래 공식 지원 담당자 이메일로 접수해 주시기 바랍니다.\n\n- 공식 개발 및 기술 문의 담당자 이메일: sodoso532@naver.com\n- 업무 시간: 평일 09:00 - 18:00\n- 피드백 반영 및 개량 인계 상시 검토 중"
+  }
+};
+
+function openInfoModal(type) {
+  document.getElementById('infoTitle').textContent = infoTexts[type].title;
+  document.getElementById('infoBody').textContent = infoTexts[type].body;
+  document.getElementById('infoModal').style.display = 'flex';
+}
+function closeInfoModalOuter(e) { if(e.target.id === 'infoModal') document.getElementById('infoModal').style.display = 'none'; }
+
 load();
 </script>
 </body>
