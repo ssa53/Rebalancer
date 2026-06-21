@@ -110,6 +110,21 @@ footer a:hover { text-decoration: underline; }
 .info-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 99999; padding: 16px; }
 .info-modal-content { background: #1a1a1a; padding: 20px; border-radius: 12px; max-width: 400px; width: 100%; border: 1px solid #333; }
 .info-modal-close { display: block; width: 100%; text-align: center; background: #333; color: #fff; padding: 10px; border-radius: 8px; margin-top: 16px; font-size: 12px; font-weight: 700; cursor: pointer; }
+
+/* 🌟 Intro.js 다크모드 완벽 호환 커스텀 (UI 깨짐 방어) */
+.introjs-tooltip, .introjs-tooltip * { color: #eee !important; box-sizing: border-box !important; }
+.introjs-tooltip { background-color: #222 !important; border: 1px solid #444 !important; border-radius: 12px !important; box-shadow: 0 8px 24px rgba(0,0,0,0.8) !important; padding: 4px !important; }
+.introjs-tooltip-title { color: #fff !important; font-size: 15px !important; font-weight: 700 !important; margin-bottom: 8px !important; padding-right: 20px !important; }
+.introjs-tooltiptext { font-size: 13px !important; line-height: 1.6 !important; margin-bottom: 12px !important; }
+.introjs-bullets ul li a { background: #555 !important; }
+.introjs-bullets ul li a.active { background: #00ff88 !important; }
+.introjs-button { background-color: #333 !important; border: 1px solid #444 !important; color: #fff !important; text-shadow: none !important; border-radius: 6px !important; font-size: 12px !important; font-weight: 600 !important; padding: 8px 12px !important; cursor: pointer !important; }
+.introjs-button:hover { background-color: #444 !important; }
+.introjs-skipbutton { color: #ff4444 !important; font-weight: bold !important; background: transparent !important; border: none !important; }
+.introjs-arrow.top { border-bottom-color: #222 !important; }
+.introjs-arrow.bottom { border-top-color: #222 !important; }
+.introjs-arrow.left { border-right-color: #222 !important; }
+.introjs-arrow.right { border-left-color: #222 !important; }
 </style>
 </head>
 <body>
@@ -125,7 +140,7 @@ footer a:hover { text-decoration: underline; }
   <div class="guide-banner">
     <ul>
       <li><strong>자산 비중 유지:</strong> 자산 가격 변동으로 뒤틀린 포트폴리오의 목표 비중을 추적/보정합니다.</li>
-      <li><strong>빠른 종목 추가:</strong> 설정 창에서 '아마존', '나스닥' 등을 한글로 검색하여 원클릭으로 등록하세요.</li>
+      <li><strong>빠른 종목 추가:</strong> 설정 창에서 '커버드콜', '나스닥' 등을 한글로 검색하여 원클릭으로 등록하세요.</li>
     </ul>
   </div>
 
@@ -177,7 +192,7 @@ footer a:hover { text-decoration: underline; }
     </div>
 
     <div class="search-container" id="step-search">
-      <input type="text" class="search-input" id="assetSearch" placeholder="🔍 종목/티커 검색 (예: 삼성전자, 슈드, 아마존)" autocomplete="off">
+      <input type="text" class="search-input" id="assetSearch" placeholder="🔍 종목/티커 검색 (예: 타겟데일리, 슈드, 아마존)" autocomplete="off">
       <div class="search-results" id="searchResults"></div>
     </div>
 
@@ -198,7 +213,7 @@ document.getElementById('manifest-link').href = URL.createObjectURL(new Blob([JS
 
 const MILESTONES = [ {name:'5백만', value:5000000}, {name:'1천만', value:10000000}, {name:'1억', value:100000000}, {name:'5억 🏁', value:500000000} ];
 
-// 한국인 필수 자산 로컬 사전 (한글 키워드 확장 보강)
+// 🌟 한국인 필수 자산 로컬 사전 완벽 확장
 const localDictionary = [
   { name: "삼성전자", ticker: "005930.KS", type: "stock", keys: ["삼전", "samsung", "삼성"] },
   { name: "SK하이닉스", ticker: "000660.KS", type: "stock", keys: ["sk", "하이닉스", "hynix"] },
@@ -212,21 +227,21 @@ const localDictionary = [
   { name: "SPDR S&P 500", ticker: "SPY", type: "stock", keys: ["spy", "스파이", "s&p500", "에센피", "에스앤피"] },
   { name: "Schwab US Dividend Equity", ticker: "SCHD", type: "stock", keys: ["schd", "슈드", "미국배당", "미국배당다우존스"] },
   { name: "KODEX 200", ticker: "069500.KS", type: "stock", keys: ["코덱스200", "국내", "kodex"] },
+  { name: "KODEX 미국나스닥100TR", ticker: "379800.KS", type: "stock", keys: ["미국나스닥100", "kodex나스닥", "코덱스나스닥", "tr"] },
   { name: "TIGER 미국나스닥100", ticker: "133690.KS", type: "stock", keys: ["미국나스닥100", "tiger나스닥", "타이거나스닥"] },
-  { name: "KODEX 미국나스닥100TR", ticker: "379800.KS", type: "stock", keys: ["미국나스닥100", "kodex나스닥", "코덱스나스닥"] },
   { name: "TIGER 미국배당다우존스", ticker: "458730.KS", type: "stock", keys: ["schd", "미국배당다우존스", "배당", "다우존스", "슈드"] },
+  { name: "TIGER 미국나스닥100타겟데일리커버드콜", ticker: "464900.KS", type: "stock", keys: ["타겟데일리", "나스닥커버드콜", "커버드콜", "tiger타겟데일리", "미국나스닥100타겟데일리커버드콜"] },
+  { name: "TIGER 미국배당+7%프리미엄다우존스", ticker: "458730.KS", type: "stock", keys: ["7%프리미엄", "배당프리미엄", "커버드콜"] },
   { name: "비트코인 (Bitcoin)", ticker: "KRW-BTC", type: "coin", keys: ["btc", "비트코인", "비트"] },
   { name: "이더리움 (Ethereum)", ticker: "KRW-ETH", type: "coin", keys: ["eth", "이더리움", "이더"] },
-  { name: "솔라나 (Solana)", ticker: "KRW-SOL", type: "coin", keys: ["sol", "솔라나", "솔"] },
-  { name: "리플 (Ripple)", ticker: "KRW-XRP", type: "coin", keys: ["xrp", "리플"] }
+  { name: "솔라나 (Solana)", ticker: "KRW-SOL", type: "coin", keys: ["sol", "솔라나", "솔"] }
 ];
 
+// 초기 포트폴리오를 주사용 계좌 전략에 맞게 세팅
 let assets = [
-  {id:'ndq', name:'KODEX 나스닥100', account:'ISA', ratio:30, type:'stock', ticker:'069500.KS'},
-  {id:'tgr', name:'TIGER 나스닥프리미엄', account:'ISA', ratio:20, type:'stock', ticker:'278530.KS'},
-  {id:'qqq', name:'Invesco QQQ', account:'해외직투', ratio:20, type:'stock', ticker:'QQQ'},
-  {id:'btc', name:'비트코인 BTC', account:'코빗', ratio:20, type:'coin', ticker:'KRW-BTC'},
-  {id:'bnb', name:'바이낸스 BNB', account:'바이낸스', ratio:10, type:'coin', ticker:'binancecoin'}
+  {id:'ndq', name:'KODEX 미국나스닥100TR', account:'ISA', ratio:40, type:'stock', ticker:'379800.KS'},
+  {id:'tgr_cc', name:'TIGER 미국나스닥100타겟데일리커버드콜', account:'ISA', ratio:30, type:'stock', ticker:'464900.KS'},
+  {id:'qqq', name:'Invesco QQQ', account:'해외직투', ratio:30, type:'stock', ticker:'QQQ'}
 ];
 let quantities = {}, prices = {}, editAssets = [];
 
@@ -261,9 +276,9 @@ function startTutorial(forceStart) {
     steps: [
       { title: "👋 반갑습니다!", intro: "자산 비중 맞추기 까다로우셨죠? 5초 만에 사용법을 마스터해 보세요." },
       { element: "#settingsBtn", title: "⚙️ 내 자산 셋팅하기", intro: "가장 먼저 여기서 내 보유 종목과 목표 비중을 100%에 맞게 등록하세요." },
-      { element: "#step-search", title: "🔍 스마트 한글 검색", intro: "티커를 몰라도 <strong>'아마존', '나스닥', '슈드'</strong> 처럼 한글로 검색해서 원클릭으로 간편하게 추가할 수 있습니다." },
+      { element: "#step-search", title: "🔍 스마트 한글 검색", intro: "티커를 몰라도 <strong>'타겟데일리', '커버드콜', '슈드'</strong> 처럼 한글로 검색해서 원클릭으로 간편하게 추가할 수 있습니다." },
       { element: "#syncBtn", title: "🔄 실시간 시세 동기화", intro: "셋팅이 끝나면 이 버튼을 눌러 자체 API로 시장 가격을 빠르게 불러옵니다." },
-      { element: "#step-cards", title: "⚡ 실시간 리밸런싱 지시서", intro: "이제 현재 보유 수량만 적으면, 목표 비중에 맞춰 <strong>얼마치를 더 사야 하는지(BUY)</strong> 시스템이 알아서 계산해 줍니다." }
+      { element: "#step-cards", title: "⚡ 실시간 리밸런싱 지시서", intro: "이제 현재 보유 수량만 적으면, 목표 비중에 맞춰 <strong>얼마치를 더 사야 할지(BUY)</strong> 시스템이 알아서 계산해 줍니다." }
     ],
     nextLabel: "다음 ➔", prevLabel: "◀ 이전", doneLabel: "시작하기 🎉", showBullets: true, exitOnOverlayClick: false
   }).oncomplete(function() {
@@ -408,7 +423,6 @@ async function syncPrices() {
   update();
 }
 
-// 🌟 Non-blocking 렌더링 방식의 고속 검색 제어 모듈
 let searchTimeout;
 document.getElementById('assetSearch').addEventListener('input', function(e) {
   clearTimeout(searchTimeout);
@@ -421,17 +435,14 @@ document.getElementById('assetSearch').addEventListener('input', function(e) {
   const qLower = q.toLowerCase();
   let localResults = [];
 
-  // [1단계] 로컬 사전 매칭 (딜레이 없이 0.00초 즉시 추출)
   localDictionary.forEach(item => {
     if (item.name.toLowerCase().includes(qLower) || item.ticker.toLowerCase().includes(qLower) || item.keys.some(k => k.includes(qLower))) {
       localResults.push({ name: item.name, ticker: item.ticker, type: item.type, source: 'local' });
     }
   });
 
-  // 로컬 매칭 데이터가 있으면 먼저 화면에 즉각 드로잉하여 응답 속도 체감을 극대화함
   renderSearchResults(localResults, true);
 
-  // [2단계] 느린 외부 API는 디바운스를 걸어 화면 차단(Freeze) 없이 백그라운드 병렬 수집
   searchTimeout = setTimeout(async () => {
     let apiResults = [];
 
@@ -464,10 +475,8 @@ document.getElementById('assetSearch').addEventListener('input', function(e) {
       } catch(e) {}
     };
 
-    // 병렬 통신으로 지연 분산
     await Promise.all([fetchYahoo(), fetchCoinGecko()]);
 
-    // 비동기 통신이 완료되면 기존 로컬 결과 하단에 원활하게 추가 병합
     if (apiResults.length > 0) {
       renderSearchResults([...localResults, ...apiResults], false);
     } else if (localResults.length === 0) {
@@ -476,7 +485,6 @@ document.getElementById('assetSearch').addEventListener('input', function(e) {
   }, 350);
 });
 
-// 결과 렌더링 헬퍼 캡슐화
 function renderSearchResults(results, isSearchingBackground) {
   const resContainer = document.getElementById('searchResults');
   if (results.length === 0) {
@@ -507,7 +515,6 @@ function renderSearchResults(results, isSearchingBackground) {
     resContainer.appendChild(div);
   });
 
-  // 외부망 조회 중일 때 목록 맨 아래에 마이너한 가이드 텍스트 송출
   if (isSearchingBackground) {
     const loader = document.createElement('div');
     loader.className = 'search-loading';
