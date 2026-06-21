@@ -171,8 +171,8 @@ footer a:hover { text-decoration: underline; }
     <div class="hint-box">
       <div class="hint-text">
         • 한국 주식/ETF: 069500.KS (종목코드.KS)<br>
-        • 미국 주식: AAPL, QQQ<br>
-        • 코인 (업비트): KRW-BTC, KRW-SOL
+        • 미국 주식: AAPL, TSLA<br>
+        • 코인 (업비트): KRW-BTC 형식을 권장
       </div>
     </div>
     <button class="add-btn" onclick="addAsset()">+ 자산 추가</button>
@@ -189,12 +189,11 @@ const MILESTONES = [
   {name:'1억', value:100000000}, {name:'5억 🏁', value:500000000}
 ];
 
-// 초기 포트폴리오 기본값 세팅
 let assets = [
-  {id:'ndq', name:'KODEX 나스닥100', ratio:40, type:'stock', ticker:'069500.KS'},
-  {id:'tgr', name:'TIGER 나스닥프리미엄', ratio:30, type:'stock', ticker:'278530.KS'},
-  {id:'btc', name:'비트코인 BTC', ratio:20, type:'coin', ticker:'KRW-BTC'},
-  {id:'sol', name:'솔라나 SOL', ratio:10, type:'coin', ticker:'KRW-SOL'}
+  {id:'ndq', name:'KODEX 나스닥100', ratio:50, type:'stock', ticker:'069500.KS'},
+  {id:'tgr', name:'TIGER 나스닥프리미엄', ratio:20, type:'stock', ticker:'278530.KS'},
+  {id:'btc', name:'비트코인 BTC', ratio:24, type:'coin', ticker:'KRW-BTC'},
+  {id:'bnb', name:'바이낸스 BNB', ratio:6, type:'coin', ticker:'binancecoin'}
 ];
 let quantities = {}, prices = {}, editAssets = [];
 
@@ -215,10 +214,9 @@ function load() {
       if(s.prices) prices = s.prices;
       if(s.assets && s.assets.length > 0) assets = s.assets;
     }
-  } catch(e) { console.error("로컬 스토리지 로드 에러", e); }
+  } catch(e) { console.error("로컬 로드 에러", e); }
   update();
   
-  // 브라우저 렌더링 후 가이드 자동 구동 안정성 확보
   setTimeout(() => startTutorial(false), 500);
 }
 
@@ -241,22 +239,22 @@ function startTutorial(forceStart) {
       {
         element: "#settingsBtn",
         title: "⚙️ 내 포트폴리오 자산 설정",
-        intro: "여기서 한국/미국 주식, ETF, 코인을 등록하고 <strong>목표 자산 배분 비율(합계 100%)</strong>을 내 취향대로 정할 수 있습니다."
+        intro: "여기서 자산 항목을 등록하고 <strong>목표 자산 배분 비율(합계 100%)</strong>을 설정합니다."
       },
       {
         element: "#syncBtn",
         title: "🔄 실시간 시세 동기화",
-        intro: "이 버튼을 누르면 업비트 및 주식 시장에서 실시간 시세를 가져와 자동으로 계산합니다."
+        intro: "설정해 둔 본인 서버 API를 통해 실시간 시장 가격을 불러옵니다."
       },
       {
         element: "#step-cash",
         title: "💵 신규 투자금 입력",
-        intro: "이번 달에 새로 추가할 투자금이나 현재 보유 중인 예수금(현금) 잔액을 적어 넣는 곳입니다."
+        intro: "새로 추가할 예수금 잔액을 적어 넣는 곳입니다."
       },
       {
         element: "#step-cards",
         title: "⚡ 실시간 리밸런싱 지시서",
-        intro: "내 자산의 현재 수량만 적어두면, 목표 비중에 맞춰 <strong>얼마치를 더 사야 하는지(BUY) 혹은 유지해야 하는지(HOLD)</strong> 즉시 알려줍니다."
+        intro: "자산 수량을 적어두면, 목표 비중에 맞춰 <strong>얼마치를 더 사야 하는지(BUY) 혹은 유지해야 하는지(HOLD)</strong> 계산해 줍니다."
       }
     ],
     nextLabel: "다음 ➔",
@@ -266,7 +264,7 @@ function startTutorial(forceStart) {
     exitOnOverlayClick: false
   }).oncomplete(function() {
     localStorage.setItem('pr_tutorial_visited', 'true');
-    showToast("가이드 완료! 이제 설정부터 자유롭게 만져보세요.");
+    showToast("가이드 완료! 이제 자유롭게 이용해 보세요.");
   }).onexit(function() {
     localStorage.setItem('pr_tutorial_visited', 'true');
   }).start();
@@ -295,7 +293,6 @@ function update() {
   save();
 }
 
-// 입력 시 커서가 튀지 않도록 로직 안정화
 function updateQty(id, val) { quantities[id] = val; update(); }
 function updatePrice(id, val) { prices[id] = val; update(); }
 
@@ -354,58 +351,35 @@ function renderCards(total) {
   while(container.children.length > assets.length) { container.removeChild(container.lastChild); }
 }
 
-// 🌐 실제 시세 불러오기 (업비트 + 야후 파이낸스 프록시)
-async function syncPrices() {
-  const btn = document.getElementById('syncBtn');
-  if(!btn) return;
-  btn.textContent = '...';
-  btn.disabled = true;
+// 🌐 사용자의 원본 자체 API 코드로 100% 원상 복구 (가장 빠름)
+async function syncPrices(){
+  const btn=document.getElementById('syncBtn');
+  btn.textContent='...';
+  btn.disabled=true;
+  const newPrices={...prices};
+  const failed=[];
   
-  const newPrices = { ...prices };
-  const failed = [];
-
-  await Promise.all(assets.map(async (a) => {
-    try {
-      if (a.type === 'coin') {
-        // 코인은 업비트(Upbit) API 직결
-        if (a.ticker.toUpperCase().startsWith('KRW-')) {
-          const res = await fetch(`https://api.upbit.com/v1/ticker?markets=${a.ticker.toUpperCase()}`);
-          const data = await res.json();
-          if (data && data[0] && data[0].trade_price) newPrices[a.id] = String(data[0].trade_price);
-          else failed.push(a.name);
-        } else {
-          // 업비트 양식이 아니면 코인게코 우회
-          const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${a.ticker.toLowerCase()}&vs_currencies=krw`);
-          const data = await res.json();
-          if (data[a.ticker.toLowerCase()] && data[a.ticker.toLowerCase()].krw) newPrices[a.id] = String(data[a.ticker.toLowerCase()].krw);
-          else failed.push(a.name);
-        }
-      } else {
-        // 주식/ETF는 야후 파이낸스 + AllOrigins 우회 프록시 연동
-        const yUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${a.ticker.toUpperCase()}`;
-        const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(yUrl)}`);
-        const data = await res.json();
-        const yData = JSON.parse(data.contents);
-        const price = yData.chart.result[0].meta.regularMarketPrice;
-        if (price) newPrices[a.id] = String(Math.floor(price));
-        else failed.push(a.name);
-      }
-    } catch(e) {
-      console.error(e);
-      failed.push(a.name);
-    }
+  await Promise.all(assets.map(async a=>{
+    try{
+      // 원래 가지고 계시던 고속 자체 백엔드 API 호출 방식
+      const r=await fetch(`/api/price?ticker=${a.ticker}&type=${a.type}`);
+      const d=await r.json();
+      if(d.price) newPrices[a.id]=String(d.price);
+      else failed.push(a.name);
+    }catch{ failed.push(a.name); }
   }));
-
-  prices = newPrices;
-  btn.textContent = 'SYNC';
-  btn.disabled = false;
   
-  if (failed.length > 0) alert('일부 시세 조회 실패 (티커 확인 요망):\n' + failed.map(n => '• ' + n).join('\n'));
-  else showToast('실시간 시세 동기화 완료 ✓');
+  prices=newPrices;
+  btn.textContent='SYNC';
+  btn.disabled=false;
+  
+  if(failed.length>0) alert('가격 조회 실패:\n'+failed.map(n=>'• '+n).join('\n'));
+  else showToast('가격 동기화 완료 ✓');
+  
   update();
 }
 
-// --- 설정창 (모달) 관리 로직 ---
+// --- 설정 모달창 관리 ---
 function openSettings() {
   editAssets = JSON.parse(JSON.stringify(assets));
   renderEditList();
@@ -415,7 +389,6 @@ function openSettings() {
 function closeSettings() { document.getElementById('settingsModal').classList.remove('open'); }
 function closeSettingsViaOverlay(e) { if(e.target.id === 'settingsModal') closeSettings(); }
 
-// 설정창 입력 이벤트
 function updateEditName(i, val) { editAssets[i].name = val; updateRatioStatus(); }
 function updateEditTicker(i, val) { editAssets[i].ticker = val; updateRatioStatus(); }
 function updateEditRatio(i, val) { editAssets[i].ratio = parseFloat(val) || 0; updateRatioStatus(); }
@@ -432,7 +405,7 @@ function renderEditList() {
       el.innerHTML = `
         <div class="asset-edit-header"><span class="asset-num">자산 ${i + 1}</span><button class="del-btn" onclick="delAsset(${i})">삭제</button></div>
         <input class="edit-input" placeholder="자산명" id="name-${i}">
-        <input class="edit-input" placeholder="티커 (예: 069500.KS, KRW-BTC)" id="ticker-${i}" style="font-size:12px;color:#aaa">
+        <input class="edit-input" placeholder="티커 (예: 069500.KS)" id="ticker-${i}" style="font-size:12px;color:#aaa">
         <div class="edit-row">
           <div class="edit-col"><div class="edit-label">목표 비율 (%)</div><input class="edit-input" type="number" id="ratio-${i}" style="margin-bottom:0"></div>
           <div class="edit-col"><div class="edit-label">타입</div><button class="type-btn" id="type-${i}" onclick="toggleType(${i})"></button></div>
@@ -485,7 +458,7 @@ function saveSettings() {
   showToast('설정 저장 완료 ✓');
 }
 
-// 애드몹 심사용 정보 모달
+// 애드몹 심사용 하단 모달
 const infoTexts = {
   privacy: { title: "🔒 개인정보처리방침", body: "본 프로그램은 외부 중앙 서버에 사용자의 지출/자산 데이터를 전송하지 않으며, 전적으로 브라우저 로컬 저장소(LocalStorage)에 보관합니다." },
   terms: { title: "⚖️ 서비스 이용약관", body: "본 웹앱은 연산 편의 도구로, 캐시 삭제로 인한 로컬 데이터 증발 및 투자 결과에 대한 책임은 사용자 본인에게 있습니다." },
