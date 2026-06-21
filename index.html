@@ -3,9 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>자산 배분 포트폴리오 리밸런서 (AdMob 지원 에디션)</title>
+<title>자산 배분 포트폴리오 리밸런서 (Tutorial 내장 에디션)</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intro.js@7.2.0/introjs.min.css">
+<script src="https://cdn.jsdelivr.net/npm/intro.js@7.2.0/intro.min.js"></script>
+
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
 body { background: #111; color: #fff; min-height: 100vh; padding: 16px; display: flex; flex-direction: column; }
@@ -18,7 +22,6 @@ body { background: #111; color: #fff; min-height: 100vh; padding: 16px; display:
 .btn-settings { background: #333; color: #ccc; } .btn-settings:hover { background: #444; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* AdMob 대응용 앱 안내 가이드 배너 */
 .guide-banner { background: #1a2e26; border: 1px solid #059669; padding: 14px; border-radius: 10px; margin-bottom: 20px; }
 .guide-banner ul { list-style: none; font-size: 11px; color: #34d399; line-height: 1.6; }
 .guide-banner strong { color: #fff; }
@@ -78,28 +81,37 @@ body { background: #111; color: #fff; min-height: 100vh; padding: 16px; display:
 .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 13px; z-index: 200; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
 .toast.show { opacity: 1; }
 
-/* AdMob 규정 준수용 하단 내비게이션 영역 */
 footer { text-align: center; padding: 24px 0; margin-top: 40px; border-top: 1px solid #222; font-size: 11px; color: #666; }
 footer a { color: #888; text-decoration: none; margin: 0 6px; }
 footer a:hover { text-decoration: underline; }
 
-/* 정책 안내용 정보 모달 */
 .info-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 300; padding: 16px; }
 .info-modal-content { background: #1a1a1a; padding: 20px; border-radius: 12px; max-width: 400px; width: 100%; border: 1px solid #333; }
 .info-modal-close { display: block; width: 100%; text-align: center; background: #333; color: #fff; padding: 10px; border-radius: 8px; margin-top: 16px; font-size: 12px; font-weight: 700; cursor: pointer; }
+
+/* 🛠️ Intro.js 다크모드 전용 커스텀 스타일 디자인 매핑 */
+.introjs-tooltip { background-color: #1a1a1a !important; color: #fff !important; border: 1px solid #333 !important; border-radius: 12px !important; box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important; }
+.introjs-tooltiptext { font-size: 13px !important; line-height: 1.6 !important; }
+.introjs-bullet { background-color: #444 !important; }
+.introjs-bullet.active { background-color: #fff !important; }
+.introjs-button { background-color: #333 !important; color: #fff !important; border: none !important; text-shadow: none !important; box-shadow: none !important; border-radius: 6px !important; font-size: 11px !important; font-weight: 700 !important; padding: 6px 10px !important; }
+.introjs-button:hover { background-color: #444 !important; color: #fff !important; }
+.introjs-disabled { background-color: #222 !important; color: #555 !important; }
+.introjs-skipbutton { color: #ff4444 !important; }
+.introjs-arrow { border-bottom-color: #1a1a1a !important; border-top-color: #1a1a1a !important; border-left-color: #1a1a1a !important; border-right-color: #1a1a1a !important; }
+.introjs-helperLayer { background: rgba(255, 255, 255, 0.08) !important; border: 1px dashed #fff !important; border-radius: 8px !important; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="header">
-    <div class="logo">포트폴리오 리밸런서 💀</div>
+    <div class="logo" style="cursor:pointer;" onclick="startTutorial(true)">포트폴리오 리밸런서 💀 <span style="font-size:10px; font-weight:normal; color:#888; text-decoration:underline;">[도움말]</span></div>
     <div class="btns">
-      <button class="btn btn-settings" onclick="openSettings()">⚙️ 설정</button>
-      <button class="btn btn-sync" id="syncBtn" onclick="syncPrices()">SYNC</button>
+      <button class="btn btn-settings" id="step-settings" onclick="openSettings()">⚙️ 설정</button>
+      <button class="btn btn-sync" id="step-sync" onclick="syncPrices()">SYNC</button>
     </div>
   </div>
 
-  <!-- AdMob 심사용 기능 정의 가이드 영역 -->
   <div class="guide-banner">
     <ul>
       <li><strong>자산 비중 유지:</strong> 자산 가격 변동으로 뒤틀린 자산 포트폴리오의 목표 비중을 실시간으로 추적하고 보정합니다.</li>
@@ -107,46 +119,28 @@ footer a:hover { text-decoration: underline; }
     </ul>
   </div>
 
-  <div class="total" id="totalDisplay">₩0</div>
-  <div class="milestone">
-    <div class="ms-row">
-      <span id="milestoneName">Next: 5백만</span>
-      <span id="milestonePercent">0.0%</span>
-    </div>
-    <div class="bar-bg"><div class="bar-fg" id="progressBar" style="width:0%"></div></div>
-    <div class="bar-label" id="milestoneTarget">목표 ₩5,000,000</div>
-  </div>
-  <div class="cash-label">투자 가능 현금 (₩)</div>
-  <input class="cash-input" type="number" id="cashInput" value="0" oninput="update()">
-  <div id="assetCards"></div>
-</div>
-
-<!-- 설정 모달 구조 수정 -->
-<div class="modal-overlay" id="settingsModal" onclick="closeSettingsViaOverlay(event)">
-  <div class="modal" onclick="event.stopPropagation()">
-    <div class="modal-header">
-      <div class="modal-title">포트폴리오 설정</div>
-      <button class="modal-btn" onclick="window.open('https://www.ktb.co.kr/trading/popup/itemPop.jspx','_blank')">🔍 종목 검색</button>
-    </div>
-    <div class="ratio-status" id="ratioStatus"></div>
-    <div id="editList"></div>
-    <div class="hint-box">
-      <div class="hint-text">
-        • 한국 ETF/주식: 종목코드.KS (예: 069500.KS)<br>
-        • 미국 주식: 티커 그대로 (예: AAPL, TSLA)<br>
-        • 코인 업비트: KRW-BTC 형식<br>
-        • 코인 코인게코: binancecoin, ethereum 등
+  <div id="step-dashboard">
+    <div class="total" id="totalDisplay">₩0</div>
+    <div class="milestone">
+      <div class="ms-row">
+        <span id="milestoneName">Next: 5백만</span>
+        <span id="milestonePercent">0.0%</span>
       </div>
+      <div class="bar-bg"><div class="bar-fg" id="progressBar" style="width:0%"></div></div>
+      <div class="bar-label" id="milestoneTarget">목표 ₩5,000,000</div>
     </div>
-    <button class="add-btn" onclick="addAsset()">+ 자산 추가</button>
-    <div class="modal-footer">
-      <button class="footer-btn footer-cancel" onclick="closeSettings()">취소</button>
-      <button class="footer-btn footer-save" onclick="saveSettings()">저장</button>
-    </div>
+  </div>
+
+  <div id="step-cash">
+    <div class="cash-label">투자 가능 현금 (₩)</div>
+    <input class="cash-input" type="number" id="cashInput" value="0" oninput="update()">
+  </div>
+
+  <div id="step-cards">
+    <div id="assetCards"></div>
   </div>
 </div>
 
-<!-- AdMob 승인 필수 서류 하단 내비게이션 -->
 <footer>
   <p>© 2026 Portfolio Rebalancer Dev. All rights reserved.</p>
   <p style="margin-top: 8px;">
@@ -156,7 +150,6 @@ footer a:hover { text-decoration: underline; }
   </p>
 </footer>
 
-<!-- 팝업 모달 토글 구조 -->
 <div id="infoModal" class="info-modal" onclick="closeInfoModalOuter(event)">
   <div class="info-modal-content">
     <h4 id="infoTitle" style="font-size:14px; margin-bottom:10px; color:#fff;"></h4>
@@ -183,6 +176,59 @@ function load(){
   const d=localStorage.getItem('pr_data');
   if(d){const s=JSON.parse(d);if(s.cash)document.getElementById('cashInput').value=s.cash;if(s.quantities)quantities=s.quantities;if(s.prices)prices=s.prices;if(s.assets)assets=s.assets;}
   update();
+  
+  // 첫 방문 검사 후 튜토리얼 트리거 실행
+  setTimeout(() => startTutorial(false), 600);
+}
+
+// 🎬 인터랙티브 가이드 함수
+function startTutorial(forceStart) {
+  const isVisited = localStorage.getItem('pr_tutorial_visited');
+  if (isVisited && !forceStart) return; // 이미 본 사람은 자동 팝업 스킵
+
+  introJs().setOptions({
+    steps: [
+      {
+        title: "👋 반갑습니다!",
+        intro: "포트폴리오 리밸런서에 오신 것을 환영합니다.<br>매달 자산 배분 비중 맞추기 까다로우셨죠? 5초 만에 사용법을 마스터해 보세요."
+      },
+      {
+        element: "#step-dashboard",
+        title: "📊 실시간 대시보드",
+        intro: "현재 보유한 총 자산액과 투자 목표 구간 달성률이 가시적으로 표기되는 중심 대시보드 영역입니다."
+      },
+      {
+        element: "#step-settings",
+        title: "⚙️ 내 포트폴리오 자산 설정",
+        intro: "여기서 한국/미국 주식, ETF, 코인을 등록하고 <strong>목표 자산 배분 비율(합계 100%)</strong>을 내 취향대로 정할 수 있습니다."
+      },
+      {
+        element: "#step-sync",
+        title: "🔄 실시간 시세 동기화",
+        intro: "배포 시 이 버튼을 누르면 연동된 API를 통해 현재 보유 자산들의 실시간 가격 정보가 자동으로 로드됩니다."
+      },
+      {
+        element: "#step-cash",
+        title: "💵 신규 투자금 입력",
+        intro: "이번 달에 새로 추가할 투자금이나 현재 보유 중인 예수금(현금) 잔액을 적어 넣는 곳입니다."
+      },
+      {
+        element: "#step-cards",
+        title: "⚡ 실시간 리밸런싱 지시서",
+        intro: "내 자산들의 현재 수량과 평단가를 입력하면, 목표 비중에 맞춰 <strong>현재 얼마치를 더 사야 하는지(BUY) 혹은 유지해야 하는지(HOLD)</strong> 수량을 실시간 계산해 줍니다."
+      }
+    ],
+    nextLabel: "다음 ➔",
+    prevLabel: "◀ 이전",
+    doneLabel: "시작하기 🎉",
+    showBullets: true,
+    exitOnOverlayClick: false
+  }).oncomplete(function() {
+    localStorage.setItem('pr_tutorial_visited', 'true');
+    showToast("가이드 완료! 이제 자유롭게 이용해 보세요.");
+  }).onexit(function() {
+    localStorage.setItem('pr_tutorial_visited', 'true');
+  }).start();
 }
 
 function save(){localStorage.setItem('pr_data',JSON.stringify({cash:document.getElementById('cashInput').value,quantities,prices,assets}));}
@@ -327,7 +373,7 @@ function renderEditList(){
       document.getElementById('ticker-'+i).addEventListener('input',function(){
         editAssets[i].ticker=this.value;updateRatioStatus();
       });
-      document.getElementById('ratio-'+i).addEventListener('input',function(){
+      document.getElementById('ratio-'+i).addEventListener('input',function/#ratio-'+i){
         editAssets[i].ratio=parseFloat(this.value)||0;updateRatioStatus();
       });
     }
@@ -372,7 +418,6 @@ function saveSettings(){
   closeSettings();update();showToast('설정 저장 완료 ✓');
 }
 
-// AdMob 관련 약관 문서 정의
 const infoTexts = {
   privacy: {
     title: "🔒 개인정보처리방침",
