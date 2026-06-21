@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intro.js@7.2.0/introjs.min.css">
+<script src="https://cdn.jsdelivr.net/npm/intro.js@7.2.0/introjs.min.css"></script>
 <script src="https://cdn.jsdelivr.net/npm/intro.js@7.2.0/intro.min.js"></script>
 
 <style>
@@ -89,9 +90,9 @@ footer a:hover { text-decoration: underline; }
 .info-modal-content { background: #1a1a1a; padding: 20px; border-radius: 12px; max-width: 400px; width: 100%; border: 1px solid #333; }
 .info-modal-close { display: block; width: 100%; text-align: center; background: #333; color: #fff; padding: 10px; border-radius: 8px; margin-top: 16px; font-size: 12px; font-weight: 700; cursor: pointer; }
 
-/* 🛠️ Intro.js 다크모드 전용 커스텀 스타일 디자인 매핑 */
+/* Intro.js 다크모드 커스텀 테마 */
 .introjs-tooltip { background-color: #1a1a1a !important; color: #fff !important; border: 1px solid #333 !important; border-radius: 12px !important; box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important; }
-.introjs-tooltiptext { font-size: 13px !important; line-height: 1.6 !important; }
+.introjs-tooltiptext { font-size: 13px !important; line-height: 1.6 !important; color: #ccc !important; }
 .introjs-bullet { background-color: #444 !important; }
 .introjs-bullet.active { background-color: #fff !important; }
 .introjs-button { background-color: #333 !important; color: #fff !important; border: none !important; text-shadow: none !important; box-shadow: none !important; border-radius: 6px !important; font-size: 11px !important; font-weight: 700 !important; padding: 6px 10px !important; }
@@ -177,14 +178,20 @@ function load(){
   if(d){const s=JSON.parse(d);if(s.cash)document.getElementById('cashInput').value=s.cash;if(s.quantities)quantities=s.quantities;if(s.prices)prices=s.prices;if(s.assets)assets=s.assets;}
   update();
   
-  // 첫 방문 검사 후 튜토리얼 트리거 실행
-  setTimeout(() => startTutorial(false), 600);
+  // 브라우저 렌더링이 완전히 완료된 후 가이드 구동 안정화 처리
+  window.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => startTutorial(false), 500);
+  });
 }
 
-// 🎬 인터랙티브 가이드 함수
 function startTutorial(forceStart) {
   const isVisited = localStorage.getItem('pr_tutorial_visited');
-  if (isVisited && !forceStart) return; // 이미 본 사람은 자동 팝업 스킵
+  if (isVisited && !forceStart) return;
+
+  if (typeof introJs !== 'function') {
+    console.error('Intro.js 라이브러리가 아직 로드되지 않았습니다.');
+    return;
+  }
 
   introJs().setOptions({
     steps: [
@@ -373,7 +380,7 @@ function renderEditList(){
       document.getElementById('ticker-'+i).addEventListener('input',function(){
         editAssets[i].ticker=this.value;updateRatioStatus();
       });
-      document.getElementById('ratio-'+i).addEventListener('input',function/#ratio-'+i){
+      document.getElementById('ratio-'+i).addEventListener('input',function(){
         editAssets[i].ratio=parseFloat(this.value)||0;updateRatioStatus();
       });
     }
