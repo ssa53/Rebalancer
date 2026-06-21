@@ -51,7 +51,7 @@ body { background: #111; color: #fff; min-height: 100vh; padding: 16px; display:
 .card-input:focus { outline: 1px solid #444; }
 .card-input::placeholder { color: #555; }
 
-/* 설정 모달 Z-index 최상위 확보 */
+/* 설정 모달 z-index 최상위 확보 */
 .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 99999; overflow-y: auto; padding: 16px; }
 .modal-overlay.open { display: flex; justify-content: center; align-items: flex-start; }
 .modal { background: #1a1a1a; border-radius: 16px; padding: 20px; max-width: 440px; width: 100%; margin-top: 40px; margin-bottom: 40px; border: 1px solid #333; }
@@ -114,8 +114,8 @@ footer a:hover { text-decoration: underline; }
 
   <div class="guide-banner">
     <ul>
-      <li><strong>자산 비중 유지:</strong> 자산 가격 변동으로 뒤틀린 자산 포트폴리오의 목표 비중을 실시간으로 추적하고 보정합니다.</li>
-      <li><strong>안전한 로컬 자산 보관:</strong> 입력하시는 투자 수량 및 자산 데이터는 브라우저 내부 영역(LocalStorage)에 정밀 보관됩니다.</li>
+      <li><strong>자산 비중 유지:</strong> 자산 가격 변동으로 뒤틀린 포트폴리오의 목표 비중을 실시간으로 추적/보정합니다.</li>
+      <li><strong>안전한 로컬 보관:</strong> 입력하시는 투자 수량 및 자산 데이터는 브라우저 내부(LocalStorage)에 정밀 보관됩니다.</li>
     </ul>
   </div>
 
@@ -160,53 +160,93 @@ footer a:hover { text-decoration: underline; }
 
 <div class="toast" id="toast"></div>
 
+<div class="modal-overlay" id="settingsModal" onclick="closeSettingsViaOverlay(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title">포트폴리오 설정</div>
+      <button class="modal-btn" onclick="window.open('https://www.ktb.co.kr/trading/popup/itemPop.jspx','_blank')">🔍 종목 검색</button>
+    </div>
+    <div class="ratio-status" id="ratioStatus"></div>
+    <div id="editList"></div>
+    <div class="hint-box">
+      <div class="hint-text">
+        • 한국 주식/ETF: 069500.KS (종목코드.KS)<br>
+        • 미국 주식: AAPL, QQQ<br>
+        • 코인 (업비트): KRW-BTC, KRW-SOL
+      </div>
+    </div>
+    <button class="add-btn" onclick="addAsset()">+ 자산 추가</button>
+    <div class="modal-footer">
+      <button class="footer-btn footer-cancel" onclick="closeSettings()">취소</button>
+      <button class="footer-btn footer-save" onclick="saveSettings()">저장</button>
+    </div>
+  </div>
+</div>
+
 <script>
-const MILESTONES=[{name:'5백만',value:5000000},{name:'1천만',value:10000000},{name:'1억',value:100000000},{name:'5억 🏁',value:500000000}];
-let assets=[
-  {id:'ndq',name:'KODEX 나스닥100',ratio:50,type:'stock',ticker:'069500.KS'},
-  {id:'tgr',name:'TIGER 나스닥프리미엄',ratio:20,type:'stock',ticker:'278530.KS'},
-  {id:'btc',name:'비트코인 BTC',ratio:24,type:'coin',ticker:'KRW-BTC'},
-  {id:'bnb',name:'바이낸스 BNB',ratio:6,type:'coin',ticker:'binancecoin'}
+const MILESTONES = [
+  {name:'5백만', value:5000000}, {name:'1천만', value:10000000}, 
+  {name:'1억', value:100000000}, {name:'5억 🏁', value:500000000}
 ];
-let quantities={},prices={},editAssets=[];
 
-function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+// 초기 포트폴리오 기본값 세팅
+let assets = [
+  {id:'ndq', name:'KODEX 나스닥100', ratio:40, type:'stock', ticker:'069500.KS'},
+  {id:'tgr', name:'TIGER 나스닥프리미엄', ratio:30, type:'stock', ticker:'278530.KS'},
+  {id:'btc', name:'비트코인 BTC', ratio:20, type:'coin', ticker:'KRW-BTC'},
+  {id:'sol', name:'솔라나 SOL', ratio:10, type:'coin', ticker:'KRW-SOL'}
+];
+let quantities = {}, prices = {}, editAssets = [];
 
-function load(){
-  const d=localStorage.getItem('pr_data');
-  if(d){const s=JSON.parse(d);if(s.cash)document.getElementById('cashInput').value=s.cash;if(s.quantities)quantities=s.quantities;if(s.prices)prices=s.prices;if(s.assets)assets=s.assets;}
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function load() {
+  try {
+    const d = localStorage.getItem('pr_data');
+    if(d) {
+      const s = JSON.parse(d);
+      if(s.cash) document.getElementById('cashInput').value = s.cash;
+      if(s.quantities) quantities = s.quantities;
+      if(s.prices) prices = s.prices;
+      if(s.assets && s.assets.length > 0) assets = s.assets;
+    }
+  } catch(e) { console.error("로컬 스토리지 로드 에러", e); }
   update();
   
-  // 첫 로드 시 튜토리얼 (500ms 후 안정적 구동)
+  // 브라우저 렌더링 후 가이드 자동 구동 안정성 확보
   setTimeout(() => startTutorial(false), 500);
 }
 
 function startTutorial(forceStart) {
   const isVisited = localStorage.getItem('pr_tutorial_visited');
   if (isVisited && !forceStart) return;
-
   if (typeof introJs !== 'function') return;
 
   introJs().setOptions({
     steps: [
       {
         title: "👋 반갑습니다!",
-        intro: "포트폴리오 리밸런서에 오신 것을 환영합니다.<br>자산 비중 맞추기 까다로우셨죠? 사용법을 빠르게 알려드릴게요."
+        intro: "자산 비중 맞추기 까다로우셨죠? 5초 만에 사용법을 마스터해 보세요."
       },
       {
         element: "#step-dashboard",
         title: "📊 실시간 대시보드",
-        intro: "현재 보유한 총 자산액과 투자 목표 구간 달성률이 표기되는 중심 대시보드 영역입니다."
+        intro: "현재 보유한 총 자산액과 투자 목표 구간 달성률이 표기됩니다."
       },
       {
-        element: "#settingsBtn", // ID 정확히 매핑
+        element: "#settingsBtn",
         title: "⚙️ 내 포트폴리오 자산 설정",
         intro: "여기서 한국/미국 주식, ETF, 코인을 등록하고 <strong>목표 자산 배분 비율(합계 100%)</strong>을 내 취향대로 정할 수 있습니다."
       },
       {
-        element: "#syncBtn", // ID 정확히 매핑
+        element: "#syncBtn",
         title: "🔄 실시간 시세 동기화",
-        intro: "이 버튼을 누르면 연동된 실시간 가격 정보가 자동으로 로드됩니다."
+        intro: "이 버튼을 누르면 업비트 및 주식 시장에서 실시간 시세를 가져와 자동으로 계산합니다."
       },
       {
         element: "#step-cash",
@@ -216,7 +256,7 @@ function startTutorial(forceStart) {
       {
         element: "#step-cards",
         title: "⚡ 실시간 리밸런싱 지시서",
-        intro: "내 자산의 수량과 평단가를 입력하면, 목표 비중에 맞춰 <strong>현재 얼마치를 더 사야 하는지(BUY) 혹은 유지해야 하는지(HOLD)</strong> 실시간으로 계산해 줍니다."
+        intro: "내 자산의 현재 수량만 적어두면, 목표 비중에 맞춰 <strong>얼마치를 더 사야 하는지(BUY) 혹은 유지해야 하는지(HOLD)</strong> 즉시 알려줍니다."
       }
     ],
     nextLabel: "다음 ➔",
@@ -226,229 +266,230 @@ function startTutorial(forceStart) {
     exitOnOverlayClick: false
   }).oncomplete(function() {
     localStorage.setItem('pr_tutorial_visited', 'true');
-    showToast("가이드 완료! 이제 자유롭게 이용해 보세요.");
+    showToast("가이드 완료! 이제 설정부터 자유롭게 만져보세요.");
   }).onexit(function() {
     localStorage.setItem('pr_tutorial_visited', 'true');
   }).start();
 }
 
-function save(){localStorage.setItem('pr_data',JSON.stringify({cash:document.getElementById('cashInput').value,quantities,prices,assets}));}
-
-function update(){
-  const cash=parseFloat(document.getElementById('cashInput').value)||0;
-  const totalAsset=assets.reduce((s,a)=>s+(parseFloat(quantities[a.id])||0)*(parseFloat(prices[a.id])||0),0);
-  const total=totalAsset+cash;
-  document.getElementById('totalDisplay').textContent='₩'+Math.round(total).toLocaleString();
-  const ms=MILESTONES.find(m=>m.value>total)||MILESTONES[MILESTONES.length-1];
-  
-  // 0으로 나누기 방어코드 추가
-  const targetValue = ms.value > 0 ? ms.value : 1; 
-  const pct=Math.min((total/targetValue)*100,100);
-  
-  document.getElementById('milestoneName').textContent='Next: '+ms.name;
-  document.getElementById('milestonePercent').textContent=pct.toFixed(1)+'%';
-  document.getElementById('progressBar').style.width=pct+'%';
-  document.getElementById('milestoneTarget').textContent='목표 ₩'+ms.value.toLocaleString();
-  renderCards(total);save();
+function save() { 
+  localStorage.setItem('pr_data', JSON.stringify({cash:document.getElementById('cashInput').value, quantities, prices, assets})); 
 }
 
-function renderCards(total){
-  const container=document.getElementById('assetCards');
+function update() {
+  const cash = parseFloat(document.getElementById('cashInput').value) || 0;
+  const totalAsset = assets.reduce((s,a) => s + (parseFloat(quantities[a.id]) || 0) * (parseFloat(prices[a.id]) || 0), 0);
+  const total = totalAsset + cash;
+  document.getElementById('totalDisplay').textContent = '₩' + Math.round(total).toLocaleString();
   
-  assets.forEach((a)=>{
-    const price=parseFloat(prices[a.id])||0,qty=parseFloat(quantities[a.id])||0;
-    const cur=qty*price,target=total*(a.ratio/100),diff=target-cur;
-    let buyQty=0;
-    if(diff>0&&price>0){if(a.type==='coin')buyQty=parseFloat((diff/price).toFixed(6));else if(a.ticker.includes('.KS'))buyQty=Math.floor(diff/price);else buyQty=parseFloat((diff/price).toFixed(4));}
-    const buyKrw=buyQty>0?Math.round(buyQty*price):0;
-    const isBuy=a.type==='coin'?buyQty>0.0001:buyQty>0;
-    const unit=a.type==='coin'?' 개':' 주';
-    const qtyStr=a.type==='coin'?buyQty.toFixed(6):a.ticker.includes('.KS')?buyQty:buyQty.toFixed(4);
+  const ms = MILESTONES.find(m => m.value > total) || MILESTONES[MILESTONES.length - 1];
+  const targetValue = ms.value > 0 ? ms.value : 1; 
+  const pct = Math.min((total / targetValue) * 100, 100);
+  
+  document.getElementById('milestoneName').textContent = 'Next: ' + ms.name;
+  document.getElementById('milestonePercent').textContent = pct.toFixed(1) + '%';
+  document.getElementById('progressBar').style.width = pct + '%';
+  document.getElementById('milestoneTarget').textContent = '목표 ₩' + ms.value.toLocaleString();
+  
+  renderCards(total);
+  save();
+}
 
-    let card=document.getElementById('card-'+a.id);
-    if(!card){
-      card=document.createElement('div');
-      card.className='card';
-      card.id='card-'+a.id;
-      card.innerHTML=`
+// 입력 시 커서가 튀지 않도록 로직 안정화
+function updateQty(id, val) { quantities[id] = val; update(); }
+function updatePrice(id, val) { prices[id] = val; update(); }
+
+function renderCards(total) {
+  const container = document.getElementById('assetCards');
+  
+  assets.forEach((a) => {
+    let card = document.getElementById('card-' + a.id);
+    if(!card) {
+      card = document.createElement('div');
+      card.className = 'card';
+      card.id = 'card-' + a.id;
+      card.innerHTML = `
         <div class="card-header">
           <div><div class="card-name" id="cname-${a.id}"></div><div class="card-ticker" id="cticker-${a.id}"></div></div>
           <div class="card-action" id="caction-${a.id}"></div>
         </div>
         <div class="card-info" id="cinfo-${a.id}"></div>
         <div class="card-inputs">
-          <input class="card-input" type="text" inputmode="decimal" placeholder="수량" id="qty-${a.id}">
-          <input class="card-input" type="text" inputmode="decimal" placeholder="단가" id="price-${a.id}">
+          <input class="card-input" type="text" inputmode="decimal" placeholder="현재 수량" id="qty-${a.id}">
+          <input class="card-input" type="text" inputmode="decimal" placeholder="현재가" id="price-${a.id}">
         </div>`;
       container.appendChild(card);
 
-      document.getElementById('qty-'+a.id).addEventListener('input',function(){
-        quantities[a.id]=this.value;calcAndUpdate();
-      });
-      document.getElementById('price-'+a.id).addEventListener('input',function(){
-        prices[a.id]=this.value;calcAndUpdate();
-      });
+      document.getElementById('qty-'+a.id).addEventListener('input', function(e) { updateQty(a.id, e.target.value); });
+      document.getElementById('price-'+a.id).addEventListener('input', function(e) { updatePrice(a.id, e.target.value); });
     }
 
-    document.getElementById('cname-'+a.id).textContent=a.name;
-    document.getElementById('cticker-'+a.id).textContent=a.ticker;
-    document.getElementById('cinfo-'+a.id).textContent=a.ratio+'% | 현재 ₩'+Math.round(cur).toLocaleString()+' → 목표 ₩'+Math.round(target).toLocaleString();
-    document.getElementById('caction-'+a.id).innerHTML=isBuy?`<div class="buy-label">BUY</div><div class="buy-qty">+${qtyStr}${unit}</div><div class="buy-krw">≈ ₩${buyKrw.toLocaleString()}</div>`:`<div class="hold-label">HOLD</div>`;
+    const price = parseFloat(prices[a.id]) || 0;
+    const qty = parseFloat(quantities[a.id]) || 0;
+    const cur = qty * price;
+    const target = total * (a.ratio / 100);
+    const diff = target - cur;
+    
+    let buyQty = 0;
+    if(diff > 0 && price > 0) {
+        if(a.type === 'coin') buyQty = parseFloat((diff/price).toFixed(6));
+        else if(a.ticker.includes('.KS')) buyQty = Math.floor(diff/price);
+        else buyQty = parseFloat((diff/price).toFixed(4));
+    }
+    
+    const buyKrw = buyQty > 0 ? Math.round(buyQty * price) : 0;
+    const isBuy = a.type === 'coin' ? buyQty > 0.0001 : buyQty > 0;
+    const unit = a.type === 'coin' ? ' 개' : ' 주';
+    const qtyStr = a.type === 'coin' ? buyQty.toFixed(6) : (a.ticker.includes('.KS') ? buyQty : buyQty.toFixed(4));
 
-    const qtyInput=document.getElementById('qty-'+a.id);
-    const priceInput=document.getElementById('price-'+a.id);
-    if(document.activeElement!==qtyInput)qtyInput.value=quantities[a.id]||'';
-    if(document.activeElement!==priceInput)priceInput.value=prices[a.id]||'';
+    document.getElementById('cname-'+a.id).textContent = a.name;
+    document.getElementById('cticker-'+a.id).textContent = a.ticker;
+    document.getElementById('cinfo-'+a.id).textContent = a.ratio + '% | 현재 ₩' + Math.round(cur).toLocaleString() + ' → 목표 ₩' + Math.round(target).toLocaleString();
+    document.getElementById('caction-'+a.id).innerHTML = isBuy ? `<div class="buy-label">BUY</div><div class="buy-qty">+${qtyStr}${unit}</div><div class="buy-krw">≈ ₩${buyKrw.toLocaleString()}</div>` : `<div class="hold-label">HOLD</div>`;
+
+    if(document.activeElement !== document.getElementById('qty-'+a.id)) document.getElementById('qty-'+a.id).value = quantities[a.id] || '';
+    if(document.activeElement !== document.getElementById('price-'+a.id)) document.getElementById('price-'+a.id).value = prices[a.id] || '';
   });
 
-  while(container.children.length>assets.length){
-    container.removeChild(container.lastChild);
-  }
+  while(container.children.length > assets.length) { container.removeChild(container.lastChild); }
 }
 
-function calcAndUpdate(){ update(); }
-function setQty(id,v){ quantities[id]=v; update(); }
-function setPrice(id,v){ prices[id]=v; update(); }
-
-// 백엔드 API 에러 해결을 위한 프론트엔드 모의(Mock) 시세 통신 로직
-async function syncPrices(){
-  const btn=document.getElementById('syncBtn');
+// 🌐 실제 시세 불러오기 (업비트 + 야후 파이낸스 프록시)
+async function syncPrices() {
+  const btn = document.getElementById('syncBtn');
   if(!btn) return;
-  btn.textContent='...';
-  btn.disabled=true;
+  btn.textContent = '...';
+  btn.disabled = true;
   
-  try {
-    // 0.8초 딜레이 (실제 서버에서 통신해오는 듯한 애니메이션 효과)
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    const newPrices = {...prices};
-    assets.forEach(a => {
-      let currentPrice = parseFloat(prices[a.id]);
-      if (!currentPrice || isNaN(currentPrice)) {
-          // 단가가 안 적혀있으면 임의의 초기값 부여
-          currentPrice = a.type === 'coin' ? 95000000 : 150000; 
+  const newPrices = { ...prices };
+  const failed = [];
+
+  await Promise.all(assets.map(async (a) => {
+    try {
+      if (a.type === 'coin') {
+        // 코인은 업비트(Upbit) API 직결
+        if (a.ticker.toUpperCase().startsWith('KRW-')) {
+          const res = await fetch(`https://api.upbit.com/v1/ticker?markets=${a.ticker.toUpperCase()}`);
+          const data = await res.json();
+          if (data && data[0] && data[0].trade_price) newPrices[a.id] = String(data[0].trade_price);
+          else failed.push(a.name);
+        } else {
+          // 업비트 양식이 아니면 코인게코 우회
+          const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${a.ticker.toLowerCase()}&vs_currencies=krw`);
+          const data = await res.json();
+          if (data[a.ticker.toLowerCase()] && data[a.ticker.toLowerCase()].krw) newPrices[a.id] = String(data[a.ticker.toLowerCase()].krw);
+          else failed.push(a.name);
+        }
+      } else {
+        // 주식/ETF는 야후 파이낸스 + AllOrigins 우회 프록시 연동
+        const yUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${a.ticker.toUpperCase()}`;
+        const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(yUrl)}`);
+        const data = await res.json();
+        const yData = JSON.parse(data.contents);
+        const price = yData.chart.result[0].meta.regularMarketPrice;
+        if (price) newPrices[a.id] = String(Math.floor(price));
+        else failed.push(a.name);
       }
-      // -3% ~ +3% 사이로 가격이 랜덤하게 실시간 변동하는 로직
-      const fluctuation = currentPrice * (Math.random() * 0.06 - 0.03);
-      newPrices[a.id] = String(Math.floor(currentPrice + fluctuation));
-    });
-    
-    prices = newPrices;
-    showToast('실시간 가격 동기화 완료 ✓');
-  } catch(e) {
-    console.error(e);
-    alert('가격 동기화 중 오류가 발생했습니다.');
-  } finally {
-    btn.textContent='SYNC';
-    btn.disabled=false;
-    update();
-  }
+    } catch(e) {
+      console.error(e);
+      failed.push(a.name);
+    }
+  }));
+
+  prices = newPrices;
+  btn.textContent = 'SYNC';
+  btn.disabled = false;
+  
+  if (failed.length > 0) alert('일부 시세 조회 실패 (티커 확인 요망):\n' + failed.map(n => '• ' + n).join('\n'));
+  else showToast('실시간 시세 동기화 완료 ✓');
+  update();
 }
 
-// 설정 모달 열기 함수 (정상화)
-function openSettings(){
-  editAssets=JSON.parse(JSON.stringify(assets));
+// --- 설정창 (모달) 관리 로직 ---
+function openSettings() {
+  editAssets = JSON.parse(JSON.stringify(assets));
   renderEditList();
   document.getElementById('settingsModal').classList.add('open');
 }
 
-function closeSettings(){
-  document.getElementById('settingsModal').classList.remove('open');
-}
+function closeSettings() { document.getElementById('settingsModal').classList.remove('open'); }
+function closeSettingsViaOverlay(e) { if(e.target.id === 'settingsModal') closeSettings(); }
 
-function closeSettingsViaOverlay(e){
-  if(e.target.id === 'settingsModal') closeSettings();
-}
+// 설정창 입력 이벤트
+function updateEditName(i, val) { editAssets[i].name = val; updateRatioStatus(); }
+function updateEditTicker(i, val) { editAssets[i].ticker = val; updateRatioStatus(); }
+function updateEditRatio(i, val) { editAssets[i].ratio = parseFloat(val) || 0; updateRatioStatus(); }
 
-function renderEditList(){
-  const totalRatio=editAssets.reduce((s,a)=>s+(parseFloat(a.ratio)||0),0);
-  const rs=document.getElementById('ratioStatus');
-  rs.textContent='비율 합계: '+totalRatio+'% '+(totalRatio===100?'✓':'(100%가 되어야 해요)');
-  rs.style.color=totalRatio===100?'#00ff88':'#ff4444';
-
-  const container=document.getElementById('editList');
+function renderEditList() {
+  const container = document.getElementById('editList');
   
-  editAssets.forEach((a,i)=>{
-    let el=document.getElementById('asset-block-'+i);
-    if(!el){
-      el=document.createElement('div');
-      el.className='asset-edit';
-      el.id='asset-block-'+i;
-      el.innerHTML=`
-        <div class="asset-edit-header"><span class="asset-num">자산 ${i+1}</span><button class="del-btn" onclick="delAsset(${i})">삭제</button></div>
+  editAssets.forEach((a, i) => {
+    let el = document.getElementById('asset-block-' + i);
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'asset-edit';
+      el.id = 'asset-block-' + i;
+      el.innerHTML = `
+        <div class="asset-edit-header"><span class="asset-num">자산 ${i + 1}</span><button class="del-btn" onclick="delAsset(${i})">삭제</button></div>
         <input class="edit-input" placeholder="자산명" id="name-${i}">
-        <input class="edit-input" placeholder="티커 (예: 069500.KS)" id="ticker-${i}" style="font-size:12px;color:#aaa">
+        <input class="edit-input" placeholder="티커 (예: 069500.KS, KRW-BTC)" id="ticker-${i}" style="font-size:12px;color:#aaa">
         <div class="edit-row">
           <div class="edit-col"><div class="edit-label">목표 비율 (%)</div><input class="edit-input" type="number" id="ratio-${i}" style="margin-bottom:0"></div>
-          <div class="edit-col"><div class="edit-label">타입</div><button class="type-btn" id="type-${i}" onclick="toggleType(${i})">${a.type==='coin'?'코인':'주식'}</button></div>
+          <div class="edit-col"><div class="edit-label">타입</div><button class="type-btn" id="type-${i}" onclick="toggleType(${i})"></button></div>
         </div>`;
       container.appendChild(el);
 
-      document.getElementById('name-'+i).addEventListener('input',function(){
-        editAssets[i].name=this.value;updateRatioStatus();
-      });
-      document.getElementById('ticker-'+i).addEventListener('input',function(){
-        editAssets[i].ticker=this.value;updateRatioStatus();
-      });
-      document.getElementById('ratio-'+i).addEventListener('input',function(){
-        editAssets[i].ratio=parseFloat(this.value)||0;updateRatioStatus();
-      });
+      document.getElementById('name-' + i).addEventListener('input', (e) => updateEditName(i, e.target.value));
+      document.getElementById('ticker-' + i).addEventListener('input', (e) => updateEditTicker(i, e.target.value));
+      document.getElementById('ratio-' + i).addEventListener('input', (e) => updateEditRatio(i, e.target.value));
     }
 
-    document.getElementById('name-'+i).value=a.name;
-    document.getElementById('ticker-'+i).value=a.ticker;
-    document.getElementById('ratio-'+i).value=a.ratio;
-    const typeBtn=document.getElementById('type-'+i);
-    typeBtn.textContent=a.type==='coin'?'코인':'주식';
-    typeBtn.style.color=a.type==='coin'?'#f7931a':'#00ff88';
-    document.querySelector('#asset-block-'+i+' .asset-num').textContent='자산 '+(i+1);
-    document.querySelector('#asset-block-'+i+' .del-btn').onclick=()=>delAsset(i);
+    if (document.activeElement !== document.getElementById('name-' + i)) document.getElementById('name-' + i).value = a.name;
+    if (document.activeElement !== document.getElementById('ticker-' + i)) document.getElementById('ticker-' + i).value = a.ticker;
+    if (document.activeElement !== document.getElementById('ratio-' + i)) document.getElementById('ratio-' + i).value = a.ratio;
+
+    const typeBtn = document.getElementById('type-' + i);
+    typeBtn.textContent = a.type === 'coin' ? '코인' : '주식';
+    typeBtn.style.color = a.type === 'coin' ? '#f7931a' : '#00ff88';
+    document.querySelector('#asset-block-' + i + ' .asset-num').textContent = '자산 ' + (i + 1);
   });
 
-  while(container.children.length>editAssets.length){
-    container.removeChild(container.lastChild);
-  }
+  while (container.children.length > editAssets.length) { container.removeChild(container.lastChild); }
+  updateRatioStatus();
 }
 
-function toggleType(i){
-  editAssets[i].type=editAssets[i].type==='coin'?'stock':'coin';
-  const btn=document.getElementById('type-'+i);
-  btn.textContent=editAssets[i].type==='coin'?'코인':'주식';
-  btn.style.color=editAssets[i].type==='coin'?'#f7931a':'#00ff88';
+function toggleType(i) {
+  editAssets[i].type = editAssets[i].type === 'coin' ? 'stock' : 'coin';
+  renderEditList();
 }
 
-function updateRatioStatus(){
-  const totalRatio=editAssets.reduce((s,a)=>s+(parseFloat(a.ratio)||0),0);
-  const rs=document.getElementById('ratioStatus');
-  rs.textContent='비율 합계: '+totalRatio+'% '+(totalRatio===100?'✓':'(100%가 되어야 해요)');
-  rs.style.color=totalRatio===100?'#00ff88':'#ff4444';
+function updateRatioStatus() {
+  const totalRatio = editAssets.reduce((s, a) => s + (parseFloat(a.ratio) || 0), 0);
+  const rs = document.getElementById('ratioStatus');
+  rs.textContent = '비율 합계: ' + totalRatio + '% ' + (totalRatio === 100 ? '✓' : '(100%가 되어야 해요)');
+  rs.style.color = totalRatio === 100 ? '#00ff88' : '#ff4444';
 }
 
-function delAsset(i){editAssets.splice(i,1);renderEditList();}
-function addAsset(){editAssets.push({id:'asset_'+Date.now(),name:'',ratio:0,type:'stock',ticker:''});renderEditList();}
-function saveSettings(){
-  if(editAssets.find(a=>!a.name.trim())){alert('자산명을 입력해주세요.');return;}
-  if(editAssets.find(a=>!a.ticker.trim())){alert('티커를 입력해주세요.');return;}
-  const total=editAssets.reduce((s,a)=>s+(parseFloat(a.ratio)||0),0);
-  if(Math.round(total)!==100){alert('비율 합계가 '+total+'%예요.\n100%가 되어야 해요.');return;}
-  assets=JSON.parse(JSON.stringify(editAssets));
-  closeSettings();update();showToast('설정 저장 완료 ✓');
+function delAsset(i) { editAssets.splice(i, 1); renderEditList(); }
+function addAsset() { editAssets.push({id: 'asset_' + Date.now(), name: '', ratio: 0, type: 'stock', ticker: ''}); renderEditList(); }
+
+function saveSettings() {
+  if(editAssets.find(a => !a.name.trim())) { alert('자산명을 입력해주세요.'); return; }
+  if(editAssets.find(a => !a.ticker.trim())) { alert('티커를 입력해주세요.'); return; }
+  const total = editAssets.reduce((s, a) => s + (parseFloat(a.ratio) || 0), 0);
+  if(Math.round(total) !== 100) { alert('비율 합계가 ' + total + '%예요.\n100%가 되어야 해요.'); return; }
+  
+  assets = JSON.parse(JSON.stringify(editAssets));
+  closeSettings();
+  update();
+  showToast('설정 저장 완료 ✓');
 }
 
-// 정보 모달 스크립트
+// 애드몹 심사용 정보 모달
 const infoTexts = {
-  privacy: {
-    title: "🔒 개인정보처리방침",
-    body: "본 프로그램은 투자 자산 배분 비중을 계산해 주는 오픈소스 기반 웹 유틸리티 서비스입니다.\n\n1. 데이터 미수집 안내: 사용자가 설정하는 포트폴리오 자산명, 보유 수량, 평단가 및 예수금 데이터는 외부 별도 중앙 데이터베이스 서버에 일절 기록되거나 보관되지 않습니다.\n2. 보관 방식: 모든 정보는 사용자의 브라우저 로컬 저장소(LocalStorage) 보안 샌드박스 영역에 저장되며 본인 기기 외부로 유출되지 않습니다.\n3. 비식별 쿠키 활용: 구글 애드몹 광고 송출 플랫폼 최적화를 위해 일부 비식별화된 연동용 타겟팅 쿠키가 사용될 수 있습니다."
-  },
-  terms: {
-    title: "⚖️ 서비스 이용약관",
-    body: "제 1 조 (목적)\n본 약관은 '포트폴리오 리밸런서'에서 지원하는 로컬 기반 자산 비중 보정 연산 서비스 이용에 대한 기본 수칙을 규정합니다.\n\n제 2 조 (자산 관리 책임)\n본 웹앱은 연산 편의 도구일 뿐이며, 투자 결과 및 브라우저 캐시 소실로 인한 로컬 데이터 증발 책임은 사용자 본인에게 있습니다.\n\n제 3 조 (인프라 광고 게재)\n본 유틸리티는 서비스 상시 무료 개방 및 운영 인프라 유지를 목적으로 구글 애드몹 광고 모듈 영역을 지면 내에 송출할 수 있습니다."
-  },
-  support: {
-    title: "✉️ 개발자 정보 및 고객지원 채널",
-    body: "본 포트폴리오 리밸런서 연산 프로그램의 버그 리포트, 제안 사항 및 기능 고도화 문의는 아래 공식 지원 담당자 이메일로 접수해 주시기 바랍니다.\n\n- 공식 개발 및 기술 문의 담당자 이메일: sodoso532@naver.com\n- 업무 시간: 평일 09:00 - 18:00\n- 피드백 반영 및 개량 인계 상시 검토 중"
-  }
+  privacy: { title: "🔒 개인정보처리방침", body: "본 프로그램은 외부 중앙 서버에 사용자의 지출/자산 데이터를 전송하지 않으며, 전적으로 브라우저 로컬 저장소(LocalStorage)에 보관합니다." },
+  terms: { title: "⚖️ 서비스 이용약관", body: "본 웹앱은 연산 편의 도구로, 캐시 삭제로 인한 로컬 데이터 증발 및 투자 결과에 대한 책임은 사용자 본인에게 있습니다." },
+  support: { title: "✉️ 고객지원 채널", body: "- 지원 이메일: sodoso532@naver.com\n- 업무 시간: 평일 09:00 - 18:00\n- 오류 리포트 및 제안 상시 접수" }
 };
 
 function openInfoModal(type) {
@@ -458,6 +499,7 @@ function openInfoModal(type) {
 }
 function closeInfoModalOuter(e) { if(e.target.id === 'infoModal') document.getElementById('infoModal').style.display = 'none'; }
 
+// 시작
 load();
 </script>
 </body>
