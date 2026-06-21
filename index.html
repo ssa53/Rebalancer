@@ -2,8 +2,15 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>자산 배분 포트폴리오 리밸런서</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>포트폴리오 리밸런서</title>
+
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#111111">
+<link rel="manifest" id="manifest-link">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💀</text></svg>">
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
@@ -12,15 +19,16 @@
 
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
-body { background: #111; color: #fff; min-height: 100vh; padding: 16px; display: flex; flex-direction: column; }
+body { background: #111; color: #fff; min-height: 100vh; padding: 16px; display: flex; flex-direction: column; -webkit-tap-highlight-color: transparent; }
 .wrap { max-width: 480px; margin: 0 auto; flex: 1; width: 100%; }
-.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-top: 12px; }
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-top: env(safe-area-inset-top, 12px); }
 .logo { font-size: 20px; font-weight: 700; color: #fff; }
 .btns { display: flex; gap: 8px; }
-.btn { padding: 8px 14px; border-radius: 8px; border: none; cursor: pointer; font-size: 12px; font-weight: 700; }
+.btn { padding: 8px 14px; border-radius: 8px; border: none; cursor: pointer; font-size: 12px; font-weight: 700; transition: transform 0.1s; }
+.btn:active { transform: scale(0.95); }
 .btn-sync { background: #fff; color: #000; } .btn-sync:hover { background: #ddd; }
 .btn-settings { background: #333; color: #ccc; } .btn-settings:hover { background: #444; }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
 .guide-banner { background: #1a2e26; border: 1px solid #059669; padding: 14px; border-radius: 10px; margin-bottom: 20px; }
 .guide-banner ul { list-style: none; font-size: 11px; color: #34d399; line-height: 1.6; }
@@ -30,7 +38,7 @@ body { background: #111; color: #fff; min-height: 100vh; padding: 16px; display:
 .milestone { margin-bottom: 20px; }
 .ms-row { display: flex; justify-content: space-between; font-size: 11px; color: #888; margin-bottom: 6px; }
 .bar-bg { background: #333; border-radius: 4px; height: 6px; }
-.bar-fg { background: #fff; border-radius: 4px; height: 6px; transition: width 0.5s; }
+.bar-fg { background: #fff; border-radius: 4px; height: 6px; transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
 .bar-label { font-size: 10px; color: #666; text-align: right; margin-top: 4px; }
 .cash-label { color: #888; font-size: 13px; margin-bottom: 4px; }
 .cash-input { width: 100%; background: #222; color: #fff; border: none; border-radius: 8px; padding: 10px; font-size: 15px; margin-bottom: 20px; outline: none; }
@@ -38,50 +46,61 @@ body { background: #111; color: #fff; min-height: 100vh; padding: 16px; display:
 
 .card { background: #1a1a1a; border-radius: 10px; padding: 14px; margin-bottom: 12px; border: 1px solid #222; }
 .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+.card-title-group { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
 .card-name { font-size: 14px; font-weight: 500; }
-.card-ticker { font-size: 10px; color: #666; margin-top: 2px; }
-.card-action { text-align: right; }
+.account-badge { background: #2b3945; color: #94a3b8; font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
+.card-ticker { font-size: 10px; color: #666; width: 100%; margin-top: 2px; }
+.card-action { text-align: right; min-width: 70px; }
 .buy-label { font-size: 13px; font-weight: 700; color: #00ff88; }
 .hold-label { font-size: 13px; font-weight: 700; color: #444; }
 .buy-qty { font-size: 12px; color: #00ff88; margin-top: 2px; }
 .buy-krw { font-size: 11px; color: #888; margin-top: 1px; }
 .card-info { font-size: 12px; color: #888; margin-bottom: 8px; }
 .card-inputs { display: flex; gap: 8px; }
-.card-input { flex: 1; background: #222; color: #fff; border: none; border-radius: 6px; padding: 8px; font-size: 12px; outline: none; }
+.card-input { flex: 1; background: #222; color: #fff; border: none; border-radius: 6px; padding: 8px; font-size: 12px; outline: none; transition: background 0.3s; }
 .card-input:focus { outline: 1px solid #444; }
-.card-input::placeholder { color: #555; }
 
-/* 설정 모달 z-index 최상위 확보 */
+/* 🌟 스켈레톤 로딩 애니메이션 CSS */
+.skeleton {
+    color: transparent !important;
+    background: linear-gradient(90deg, #222 25%, #383838 50%, #222 75%) !important;
+    background-size: 200% 100% !important;
+    animation: skeleton-loading 1.2s infinite linear !important;
+    border-radius: 4px;
+    border: none !important;
+    pointer-events: none;
+}
+@keyframes skeleton-loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* 설정 모달 */
 .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 99999; overflow-y: auto; padding: 16px; }
 .modal-overlay.open { display: flex; justify-content: center; align-items: flex-start; }
 .modal { background: #1a1a1a; border-radius: 16px; padding: 20px; max-width: 440px; width: 100%; margin-top: 40px; margin-bottom: 40px; border: 1px solid #333; }
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .modal-title { font-size: 16px; font-weight: 700; }
 .modal-btn { padding: 6px 12px; border-radius: 20px; border: none; cursor: pointer; font-size: 11px; background: #333; color: #aaa; }
-.modal-btn:hover { background: #444; }
 .ratio-status { font-size: 12px; margin-bottom: 16px; }
 .asset-edit { background: #222; border-radius: 10px; padding: 12px; margin-bottom: 10px; border: 1px solid #2a2a2a; }
 .asset-edit-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
 .asset-num { font-size: 11px; color: #888; }
 .del-btn { font-size: 11px; color: #ff4444; background: none; border: none; cursor: pointer; }
 .edit-input { width: 100%; background: #333; color: #fff; border: none; border-radius: 6px; padding: 8px; font-size: 13px; margin-bottom: 8px; outline: none; }
-.edit-input:focus { outline: 1px solid #555; }
 .edit-row { display: flex; gap: 8px; }
 .edit-col { flex: 1; }
 .edit-label { font-size: 11px; color: #666; margin-bottom: 4px; }
 .type-btn { width: 100%; background: #333; border: none; border-radius: 6px; padding: 8px; font-size: 13px; cursor: pointer; height: 36px; }
-.hint-box { background: #222; border-radius: 10px; padding: 12px; margin-bottom: 12px; border: 1px solid #2a2a2a; }
-.hint-text { font-size: 11px; color: #aaa; line-height: 18px; }
 .add-btn { width: 100%; background: #333; border-radius: 10px; padding: 12px; border: none; color: #aaa; font-size: 13px; cursor: pointer; margin-bottom: 16px; }
-.add-btn:hover { background: #444; }
 .modal-footer { display: flex; gap: 10px; margin-top: 8px; }
 .footer-btn { flex: 1; padding: 14px; border-radius: 10px; border: none; cursor: pointer; font-size: 14px; font-weight: 700; }
-.footer-cancel { background: #333; color: #aaa; } .footer-cancel:hover { background: #444; }
-.footer-save { background: #fff; color: #000; } .footer-save:hover { background: #ddd; }
-.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 13px; z-index: 999999; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+.footer-cancel { background: #333; color: #aaa; } 
+.footer-save { background: #fff; color: #000; } 
+.toast { position: fixed; bottom: env(safe-area-inset-bottom, 24px); left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 13px; z-index: 999999; opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap; }
 .toast.show { opacity: 1; }
 
-footer { text-align: center; padding: 24px 0; margin-top: 40px; border-top: 1px solid #222; font-size: 11px; color: #666; }
+footer { text-align: center; padding: 24px 0; margin-top: 40px; border-top: 1px solid #222; font-size: 11px; color: #666; padding-bottom: env(safe-area-inset-bottom, 24px); }
 footer a { color: #888; text-decoration: none; margin: 0 6px; }
 footer a:hover { text-decoration: underline; }
 
@@ -94,12 +113,9 @@ footer a:hover { text-decoration: underline; }
 .introjs-tooltiptext { font-size: 13px !important; line-height: 1.6 !important; color: #ccc !important; }
 .introjs-bullet { background-color: #444 !important; }
 .introjs-bullet.active { background-color: #fff !important; }
-.introjs-button { background-color: #333 !important; color: #fff !important; border: none !important; text-shadow: none !important; border-radius: 6px !important; font-size: 11px !important; font-weight: 700 !important; padding: 6px 10px !important; }
-.introjs-button:hover { background-color: #444 !important; }
-.introjs-disabled { background-color: #222 !important; color: #555 !important; }
+.introjs-button { background-color: #333 !important; color: #fff !important; border: none !important; border-radius: 6px !important; font-size: 11px !important; font-weight: 700 !important; padding: 6px 10px !important; }
 .introjs-skipbutton { color: #ff4444 !important; }
 .introjs-arrow { border-color: #1a1a1a !important; }
-.introjs-helperLayer { background: rgba(255, 255, 255, 0.08) !important; border: 1px dashed #fff !important; border-radius: 8px !important; }
 </style>
 </head>
 <body>
@@ -115,7 +131,7 @@ footer a:hover { text-decoration: underline; }
   <div class="guide-banner">
     <ul>
       <li><strong>자산 비중 유지:</strong> 자산 가격 변동으로 뒤틀린 포트폴리오의 목표 비중을 실시간으로 추적/보정합니다.</li>
-      <li><strong>안전한 로컬 보관:</strong> 입력하시는 투자 수량 및 자산 데이터는 브라우저 내부(LocalStorage)에 정밀 보관됩니다.</li>
+      <li><strong>앱으로 설치하기:</strong> 스마트폰 브라우저 메뉴에서 '홈 화면에 추가'를 누르면 전용 앱처럼 사용 가능합니다.</li>
     </ul>
   </div>
 
@@ -171,7 +187,7 @@ footer a:hover { text-decoration: underline; }
     <div class="hint-box">
       <div class="hint-text">
         • 한국 주식/ETF: 069500.KS (종목코드.KS)<br>
-        • 미국 주식: AAPL, TSLA<br>
+        • 미국 주식: AAPL, QQQ<br>
         • 코인 (업비트): KRW-BTC 형식을 권장
       </div>
     </div>
@@ -184,16 +200,31 @@ footer a:hover { text-decoration: underline; }
 </div>
 
 <script>
+// PWA 앱 설치용 가상 Manifest 동적 생성
+const manifestJSON = {
+  "name": "포트폴리오 리밸런서",
+  "short_name": "리밸런서",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#111111",
+  "theme_color": "#111111",
+  "icons": [{ "src": "data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23111%22/><text y=%22.9em%22 x=%225%22 font-size=%2280%22>💀</text></svg>", "sizes": "192x192", "type": "image/svg+xml" }]
+};
+const manifestBlob = new Blob([JSON.stringify(manifestJSON)], {type: 'application/json'});
+document.getElementById('manifest-link').href = URL.createObjectURL(manifestBlob);
+
 const MILESTONES = [
   {name:'5백만', value:5000000}, {name:'1천만', value:10000000}, 
   {name:'1억', value:100000000}, {name:'5억 🏁', value:500000000}
 ];
 
+// 계좌(account) 속성이 추가된 초기 기본 포트폴리오
 let assets = [
-  {id:'ndq', name:'KODEX 나스닥100', ratio:50, type:'stock', ticker:'069500.KS'},
-  {id:'tgr', name:'TIGER 나스닥프리미엄', ratio:20, type:'stock', ticker:'278530.KS'},
-  {id:'btc', name:'비트코인 BTC', ratio:24, type:'coin', ticker:'KRW-BTC'},
-  {id:'bnb', name:'바이낸스 BNB', ratio:6, type:'coin', ticker:'binancecoin'}
+  {id:'ndq', name:'KODEX 나스닥100', account:'ISA', ratio:30, type:'stock', ticker:'069500.KS'},
+  {id:'tgr', name:'TIGER 나스닥프리미엄', account:'ISA', ratio:20, type:'stock', ticker:'278530.KS'},
+  {id:'qqq', name:'Invesco QQQ', account:'해외직투', ratio:20, type:'stock', ticker:'QQQ'},
+  {id:'btc', name:'비트코인 BTC', account:'코빗', ratio:20, type:'coin', ticker:'KRW-BTC'},
+  {id:'bnb', name:'바이낸스 BNB', account:'바이낸스', ratio:10, type:'coin', ticker:'binancecoin'}
 ];
 let quantities = {}, prices = {}, editAssets = [];
 
@@ -216,7 +247,6 @@ function load() {
     }
   } catch(e) { console.error("로컬 로드 에러", e); }
   update();
-  
   setTimeout(() => startTutorial(false), 500);
 }
 
@@ -239,12 +269,12 @@ function startTutorial(forceStart) {
       {
         element: "#settingsBtn",
         title: "⚙️ 내 포트폴리오 자산 설정",
-        intro: "여기서 자산 항목을 등록하고 <strong>목표 자산 배분 비율(합계 100%)</strong>을 설정합니다."
+        intro: "여기서 자산 항목과 <strong>계좌 위치</strong>를 등록하고, 목표 자산 배분 비율을 설정합니다."
       },
       {
         element: "#syncBtn",
         title: "🔄 실시간 시세 동기화",
-        intro: "설정해 둔 본인 서버 API를 통해 실시간 시장 가격을 불러옵니다."
+        intro: "이 버튼을 누르면 자체 API를 통해 실시간 시장 가격을 매우 빠르게 불러옵니다."
       },
       {
         element: "#step-cash",
@@ -264,7 +294,7 @@ function startTutorial(forceStart) {
     exitOnOverlayClick: false
   }).oncomplete(function() {
     localStorage.setItem('pr_tutorial_visited', 'true');
-    showToast("가이드 완료! 이제 자유롭게 이용해 보세요.");
+    showToast("가이드 완료! 앱처럼 홈 화면에 추가해서 사용해보세요.");
   }).onexit(function() {
     localStorage.setItem('pr_tutorial_visited', 'true');
   }).start();
@@ -307,13 +337,17 @@ function renderCards(total) {
       card.id = 'card-' + a.id;
       card.innerHTML = `
         <div class="card-header">
-          <div><div class="card-name" id="cname-${a.id}"></div><div class="card-ticker" id="cticker-${a.id}"></div></div>
+          <div class="card-title-group">
+            <div class="card-name" id="cname-${a.id}"></div>
+            <div class="account-badge" id="cacc-${a.id}" style="display:none;"></div>
+            <div class="card-ticker" id="cticker-${a.id}"></div>
+          </div>
           <div class="card-action" id="caction-${a.id}"></div>
         </div>
         <div class="card-info" id="cinfo-${a.id}"></div>
         <div class="card-inputs">
           <input class="card-input" type="text" inputmode="decimal" placeholder="현재 수량" id="qty-${a.id}">
-          <input class="card-input" type="text" inputmode="decimal" placeholder="현재가" id="price-${a.id}">
+          <input class="card-input price-input" type="text" inputmode="decimal" placeholder="현재가" id="price-${a.id}">
         </div>`;
       container.appendChild(card);
 
@@ -341,45 +375,82 @@ function renderCards(total) {
 
     document.getElementById('cname-'+a.id).textContent = a.name;
     document.getElementById('cticker-'+a.id).textContent = a.ticker;
+    
+    // 계좌 태그 뱃지 처리 로직
+    const accBadge = document.getElementById('cacc-'+a.id);
+    if(a.account && a.account.trim() !== '') {
+        accBadge.textContent = a.account;
+        accBadge.style.display = 'inline-block';
+    } else {
+        accBadge.style.display = 'none';
+    }
+
     document.getElementById('cinfo-'+a.id).textContent = a.ratio + '% | 현재 ₩' + Math.round(cur).toLocaleString() + ' → 목표 ₩' + Math.round(target).toLocaleString();
-    document.getElementById('caction-'+a.id).innerHTML = isBuy ? `<div class="buy-label">BUY</div><div class="buy-qty">+${qtyStr}${unit}</div><div class="buy-krw">≈ ₩${buyKrw.toLocaleString()}</div>` : `<div class="hold-label">HOLD</div>`;
+    
+    const actionHtml = isBuy ? `<div class="buy-label">BUY</div><div class="buy-qty">+${qtyStr}${unit}</div><div class="buy-krw">≈ ₩${buyKrw.toLocaleString()}</div>` : `<div class="hold-label">HOLD</div>`;
+    
+    // 스켈레톤 애니메이션이 활성화되어 있지 않을 때만 내용 업데이트
+    const actionDiv = document.getElementById('caction-'+a.id);
+    if(!actionDiv.classList.contains('skeleton')) {
+      actionDiv.innerHTML = actionHtml;
+    }
 
     if(document.activeElement !== document.getElementById('qty-'+a.id)) document.getElementById('qty-'+a.id).value = quantities[a.id] || '';
-    if(document.activeElement !== document.getElementById('price-'+a.id)) document.getElementById('price-'+a.id).value = prices[a.id] || '';
+    
+    const priceInput = document.getElementById('price-'+a.id);
+    if(document.activeElement !== priceInput && !priceInput.classList.contains('skeleton')) {
+      priceInput.value = prices[a.id] || '';
+    }
   });
 
   while(container.children.length > assets.length) { container.removeChild(container.lastChild); }
 }
 
-// 🌐 사용자의 원본 자체 API 코드로 100% 원상 복구 (가장 빠름)
+// 🌐 스켈레톤 UI가 적용된 고속 자체 API 연동 로직
 async function syncPrices(){
-  const btn=document.getElementById('syncBtn');
-  btn.textContent='...';
-  btn.disabled=true;
-  const newPrices={...prices};
-  const failed=[];
+  const btn = document.getElementById('syncBtn');
+  btn.textContent = '...';
+  btn.disabled = true;
   
-  await Promise.all(assets.map(async a=>{
-    try{
-      // 원래 가지고 계시던 고속 자체 백엔드 API 호출 방식
-      const r=await fetch(`/api/price?ticker=${a.ticker}&type=${a.type}`);
-      const d=await r.json();
-      if(d.price) newPrices[a.id]=String(d.price);
+  // 1. 통신 시작 시 스켈레톤 클래스 부착
+  assets.forEach(a => {
+    document.getElementById('caction-'+a.id).classList.add('skeleton');
+    document.getElementById('caction-'+a.id).innerHTML = `<div style="height:36px; width:60px;"></div>`;
+    document.getElementById('price-'+a.id).classList.add('skeleton');
+    document.getElementById('price-'+a.id).value = '';
+  });
+
+  const newPrices = {...prices};
+  const failed = [];
+  
+  await Promise.all(assets.map(async a => {
+    try {
+      // ⚡ 자체 구축 API 페치 구간
+      const r = await fetch(`/api/price?ticker=${a.ticker}&type=${a.type}`);
+      const d = await r.json();
+      if(d.price) newPrices[a.id] = String(d.price);
       else failed.push(a.name);
-    }catch{ failed.push(a.name); }
+    } catch { 
+      failed.push(a.name); 
+    }
   }));
   
-  prices=newPrices;
-  btn.textContent='SYNC';
-  btn.disabled=false;
+  // 2. 통신 종료 후 스켈레톤 제거 및 반영
+  assets.forEach(a => {
+    document.getElementById('caction-'+a.id).classList.remove('skeleton');
+    document.getElementById('price-'+a.id).classList.remove('skeleton');
+  });
+
+  prices = newPrices;
+  btn.textContent = 'SYNC';
+  btn.disabled = false;
   
-  if(failed.length>0) alert('가격 조회 실패:\n'+failed.map(n=>'• '+n).join('\n'));
+  if(failed.length > 0) alert('가격 조회 실패:\n' + failed.map(n => '• ' + n).join('\n'));
   else showToast('가격 동기화 완료 ✓');
   
   update();
 }
 
-// --- 설정 모달창 관리 ---
 function openSettings() {
   editAssets = JSON.parse(JSON.stringify(assets));
   renderEditList();
@@ -390,6 +461,7 @@ function closeSettings() { document.getElementById('settingsModal').classList.re
 function closeSettingsViaOverlay(e) { if(e.target.id === 'settingsModal') closeSettings(); }
 
 function updateEditName(i, val) { editAssets[i].name = val; updateRatioStatus(); }
+function updateEditAccount(i, val) { editAssets[i].account = val; }
 function updateEditTicker(i, val) { editAssets[i].ticker = val; updateRatioStatus(); }
 function updateEditRatio(i, val) { editAssets[i].ratio = parseFloat(val) || 0; updateRatioStatus(); }
 
@@ -404,7 +476,10 @@ function renderEditList() {
       el.id = 'asset-block-' + i;
       el.innerHTML = `
         <div class="asset-edit-header"><span class="asset-num">자산 ${i + 1}</span><button class="del-btn" onclick="delAsset(${i})">삭제</button></div>
-        <input class="edit-input" placeholder="자산명" id="name-${i}">
+        <div class="edit-row">
+          <div class="edit-col"><input class="edit-input" placeholder="자산명" id="name-${i}"></div>
+          <div class="edit-col"><input class="edit-input" placeholder="계좌 (예: ISA, 코빗)" id="account-${i}" style="color:#aaa;"></div>
+        </div>
         <input class="edit-input" placeholder="티커 (예: 069500.KS)" id="ticker-${i}" style="font-size:12px;color:#aaa">
         <div class="edit-row">
           <div class="edit-col"><div class="edit-label">목표 비율 (%)</div><input class="edit-input" type="number" id="ratio-${i}" style="margin-bottom:0"></div>
@@ -413,11 +488,13 @@ function renderEditList() {
       container.appendChild(el);
 
       document.getElementById('name-' + i).addEventListener('input', (e) => updateEditName(i, e.target.value));
+      document.getElementById('account-' + i).addEventListener('input', (e) => updateEditAccount(i, e.target.value));
       document.getElementById('ticker-' + i).addEventListener('input', (e) => updateEditTicker(i, e.target.value));
       document.getElementById('ratio-' + i).addEventListener('input', (e) => updateEditRatio(i, e.target.value));
     }
 
     if (document.activeElement !== document.getElementById('name-' + i)) document.getElementById('name-' + i).value = a.name;
+    if (document.activeElement !== document.getElementById('account-' + i)) document.getElementById('account-' + i).value = a.account || '';
     if (document.activeElement !== document.getElementById('ticker-' + i)) document.getElementById('ticker-' + i).value = a.ticker;
     if (document.activeElement !== document.getElementById('ratio-' + i)) document.getElementById('ratio-' + i).value = a.ratio;
 
@@ -444,7 +521,7 @@ function updateRatioStatus() {
 }
 
 function delAsset(i) { editAssets.splice(i, 1); renderEditList(); }
-function addAsset() { editAssets.push({id: 'asset_' + Date.now(), name: '', ratio: 0, type: 'stock', ticker: ''}); renderEditList(); }
+function addAsset() { editAssets.push({id: 'asset_' + Date.now(), name: '', account: '', ratio: 0, type: 'stock', ticker: ''}); renderEditList(); }
 
 function saveSettings() {
   if(editAssets.find(a => !a.name.trim())) { alert('자산명을 입력해주세요.'); return; }
@@ -458,7 +535,6 @@ function saveSettings() {
   showToast('설정 저장 완료 ✓');
 }
 
-// 애드몹 심사용 하단 모달
 const infoTexts = {
   privacy: { title: "🔒 개인정보처리방침", body: "본 프로그램은 외부 중앙 서버에 사용자의 지출/자산 데이터를 전송하지 않으며, 전적으로 브라우저 로컬 저장소(LocalStorage)에 보관합니다." },
   terms: { title: "⚖️ 서비스 이용약관", body: "본 웹앱은 연산 편의 도구로, 캐시 삭제로 인한 로컬 데이터 증발 및 투자 결과에 대한 책임은 사용자 본인에게 있습니다." },
